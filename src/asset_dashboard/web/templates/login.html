@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ t('login.title') }} — {{ t('app.brand') }}{% endblock %}
+{% block content %}
+<div class="hud-panel" style="max-width:500px;min-height:500px;margin:4rem auto;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:0;">
+  <h1 style="font-size:40px;text-align:center;margin-bottom:50px;"><svg aria-hidden="true" focusable="false" viewBox="0 0 64 64" width="1em" height="1em" style="vertical-align:-0.12em;margin-right:0.3em;"><circle cx="32" cy="32" r="30" fill="#b9c0bd" stroke="#202725" stroke-width="2"/><circle cx="32" cy="32" r="26" fill="#03140d" stroke="#59635e" stroke-width="1.5"/><path d="M32 32V6A26 26 0 0 1 51 14Z" fill="#21df58" opacity="0.9"/><g fill="none" stroke="#3a9a58" stroke-width="0.7" opacity="0.55"><circle cx="32" cy="32" r="7"/><circle cx="32" cy="32" r="14"/><circle cx="32" cy="32" r="21"/><path d="M6 32h52M32 6v52M13.6 13.6l36.8 36.8M50.4 13.6 13.6 50.4"/></g><path d="M32 32V6" stroke="#80ff9b" stroke-width="1.5"/><circle cx="32" cy="32" r="2.5" fill="#050908" stroke="#0b2817" stroke-width="1"/></svg>{{ t('app.brand') }}</h1>
+  <h2>{{ t('login.title') }}</h2>
+  <form id="login-form" onsubmit="return doLogin(event)" style="margin-left:auto;margin-right:auto;">
+    <div style="margin-bottom:0.75rem;">
+      <label for="username">{{ t('login.username') }}</label><br>
+      <input id="username" name="username" type="text" required style="width:100%">
+    </div>
+    <div style="margin-bottom:0.75rem;">
+      <label for="password">{{ t('login.password') }}</label><br>
+      <input id="password" name="password" type="password" required style="width:100%">
+    </div>
+    <div id="login-error" class="form-error"></div>
+    <button class="btn btn-primary" type="submit" style="display:block;margin-left:auto;margin-right:auto;">{{ t('login.submit') }}</button>
+  </form>
+</div>
+<script>
+async function doLogin(e) {
+  e.preventDefault();
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  const resp = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username, password}),
+  });
+  if (resp.ok) {
+    window.location.href = '/';
+  } else {
+    const body = await resp.json().catch(() => ({}));
+    document.getElementById('login-error').textContent =
+      (body.error && body.error.message) || 'Sign-in failed.';
+  }
+  return false;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}{{ t('dashboard.title') }} — {{ t('app.brand') }}{% endblock %}
+{% block content %}
+<div class="home-columns">
+  <div class="home-col-left">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;">
+        <h2 style="margin:0;">{{ t('dashboard.recent_profiles_title') }}</h2>
+        <a class="btn btn-primary" href="/scan">{{ t('scan_config.custom_scan') }}</a>
+      </div>
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>{{ t('profiles.col_name') }}</th><th>{{ t('profiles.col_target') }}</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for p in recent_profiles %}
+          <tr>
+            <td><a href="/profiles/{{ p.id }}">{{ p.name }}</a></td>
+            <td>{{ p.target_scope | join(', ') if p.target_scope else t('dashboard.target_less_hint') }}</td>
+            <td><a class="btn btn-primary" href="/profiles/{{ p.id }}/scan">{{ t('dashboard.run_now') }}</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3">{{ t('dashboard.recent_profiles_none') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>{{ t('dashboard.upcoming_schedules_title') }}</h2>
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>{{ t('dashboard.col_profile') }}</th><th>{{ t('dashboard.col_target') }}</th><th>{{ t('schedules.col_next_run') }}</th></tr>
+        </thead>
+        <tbody>
+          {% for s in upcoming_schedules %}
+          <tr>
+            <td><a href="/schedules">{{ s.label or s.profile_name }}</a></td>
+            <td>{{ s.target_scope | join(', ') if s.target_scope else '—' }}</td>
+            <td>{{ s.next_run_at | localts }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3">{{ t('dashboard.upcoming_schedules_none') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="home-col-right">
+    <div class="card">
+      <h2>{{ t('dashboard.recent_scans_title') }}</h2>
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>{{ t('dashboard.col_profile') }}</th><th>{{ t('dashboard.col_target') }}</th><th>{{ t('dashboard.col_last_run') }}</th><th>{{ t('dashboard.col_non_compliant') }}</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for scan in recent_scans %}
+          <tr>
+            <td>{{ scan.profile_name }}</td>
+            <td>{{ scan.target_scope | join(', ') if scan.target_scope else '—' }}</td>
+            <td>{{ scan.run.started_at | localts }}</td>
+            {% if scan.evaluated %}
+            <td><span class="badge badge-non-compliant">{{ scan.posture.get('non_compliant', 0) }}</span></td>
+            {% else %}
+            <td colspan="1"><em>{{ t('dashboard.compliance_na') }}</em></td>
+            {% endif %}
+            <td>
+              <a href="/runs/{{ scan.run.id }}">{{ t('dashboard.view') }}</a>
+              <a class="btn" href="/schedules?from_run={{ scan.run.id }}">{{ t('history.schedule_this_scan') }}</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5">{{ t('dashboard.recent_scans_none') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="footer-link"><a href="https://github.com" target="_blank" rel="noopener noreferrer">Посилання на GitHub проекту</a></p>
+{% endblock %}

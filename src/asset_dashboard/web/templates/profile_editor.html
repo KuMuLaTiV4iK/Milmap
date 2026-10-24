@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}{{ t('editor.title_edit') if profile else t('editor.title_new') }} — {{ t('app.brand') }}{% endblock %}
+{% block content %}
+<h1>{{ t('editor.title_edit') if profile else t('editor.title_new') }}</h1>
+<form id="profile-form" onsubmit="return saveProfile(event)">
+  <input type="hidden" id="profile_id" value="{{ profile.id if profile else '' }}">
+  <input type="hidden" id="version_token" value="{{ profile.version_token if profile else '' }}">
+
+  <div class="card">
+    <div style="margin-bottom:0.75rem;">
+      <label for="name">{{ t('editor.name') }}</label><br>
+      <input id="name" style="width:100%" value="{{ profile.name if profile else '' }}" required>
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+      <label for="description">{{ t('editor.description') }}</label><br>
+      <input id="description" style="width:100%" value="{{ profile.description if profile else '' }}">
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+      {{ m.field_label(t('editor.target_scope'), 'target_scope') }}<br>
+      <input id="target_scope" style="width:100%"
+             value="{{ (profile.target_scope | join(', ')) if profile else '' }}"
+             placeholder="10.10.0.0/24, 10.10.1.1-10.10.1.50">
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+      {{ m.field_label(t('editor.port_spec'), 'port_spec') }}<br>
+      <textarea id="port_spec" rows="2" placeholder="5060-5062">{{ profile.port_spec if profile else '' }}</textarea>
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+      {{ m.field_label(t('editor.timing'), 'timing') }}<br>
+      <select id="timing">
+        {% for tpl in ['T0','T1','T2','T3','T4','T5'] %}
+        <option value="{{ tpl }}" {{ 'selected' if (profile and profile.scan_params.timing == tpl) or (not profile and tpl == 'T3') else '' }}>{{ tpl }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+      <label><input type="checkbox" id="field_open_ports"
+        {{ 'checked' if not profile or 'open_ports' in profile.extracted_fields else '' }}> {{ t('editor.field_open_ports') }}</label>
+      {{ m.help_icon('field_open_ports') }}<br>
+      <label><input type="checkbox" id="field_service_version"
+        {{ 'checked' if not profile or 'service_version' in profile.extracted_fields else '' }}> {{ t('editor.field_service_version') }}</label>
+      {{ m.help_icon('field_service_version') }}
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+      <label><input type="checkbox" id="compliance_version"
+        {{ 'checked' if profile and profile.compliance_settings.version_validity else '' }}> {{ t('editor.compliance_version') }}</label>
+      {{ m.help_icon('compliance_version') }}
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+      {{ m.field_label(t('editor.nse_scripts'), 'nse_scripts') }}<br>
+      <div id="nse-scripts-list" class="checkbox-list" style="margin-top:0.35rem;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <strong>{{ t('editor.command_preview') }}</strong>
+    <pre id="command-preview" class="cmd-preview">nmap …</pre>
+  </div>
+
+  <div id="form-error" class="form-error"></div>
+  <button class="btn btn-primary" type="submit">{{ t('editor.save') }}</button>
+  <button class="btn" type="button" onclick="scanNow()">{{ t('scan_config.start_scan') }}</button>
+  <a class="btn" href="/profiles">{{ t('editor.cancel') }}</a>
+</form>
+<script>
+const PROFILE_SELECTED_SCRIPTS = {{ (profile.selected_scripts if profile else []) | tojson }};
+
+function csrfToken() {
+  return document.cookie.split('; ').find(c => c.startsWith('csrf_token='))?.split('=')[1] || '';
+}
+
+function readForm() {
+  const selectedScripts = Array.from(document.querySelectorAll('.nse-checkbox:checked'))
+    .map(el => el.value);
+  const extractedFields = [];
+  if (document.getElementById('field_open_ports').checked) extractedFields.push('open_ports');
+  if (document.getElementById('field_service_version').checked) extractedFields.push('service_version');
+  return {
+    name: document.getElementById('name').value,
+    description: document.getElementById('description').value,
+    target_scope: document.getElementById('target_scope').value.split(',').map(s => s.trim()).filter(Boolean),
+    port_spec: document.getElementById('port_spec').value.replace(/\s+/g, ''),
+    scan_params: { timing: document.getElementById('timing').value },
+    extracted_fields: extractedFields,
+    selected_scripts: selectedScripts,
+    compliance_settings: { version_validity: document.getElementById('compliance_version').checked },
+    cache_freshness_seconds: {{ profile.cache_freshness_seconds if profile else 3600 }},
+  };
+}
+
+async function loadNseScripts() {
+  const resp = await fetch('/api/nse-scripts', {headers: {'Accept': 'application/json'}});
+  if (!resp.ok) return;
+  const scripts = await resp.json();
+  const container = document.getElementById('nse-scripts-list');
+  container.innerHTML = '';
+  for (const s of scripts) {
+    const label = document.createElement('label');
+    label.className = 'checkbox-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'nse-checkbox';
+    cb.value = s.script_id;
+    cb.checked = PROFILE_SELECTED_SCRIPTS.includes(s.script_id);
+    cb.disabled = !s.enabled;
+    cb.addEventListener('change', updatePreview);
+    label.appendChild(cb);
+    const text = s.script_id + (s.description ? ' — ' + s.description : '') +
+      (s.enabled ? '' : ' (' + '{{ t("configuration.status_disabled") }}' + ')');
+    label.appendChild(document.createTextNode(' ' + text));
+    container.appendChild(label);
+  }
+  updatePreview();
+}
+
+async function updatePreview() {
+  const body = readForm();
+  const headers = {'Content-Type': 'application/json', 'x-csrf-token': csrfToken()};
+  const resp = await fetch('/api/profiles/preview-command', {method: 'POST', headers, body: JSON.stringify(body)});
+  const pre = document.getElementById('command-preview');
+  if (resp.ok) {
+    const data = await resp.json();
+    pre.textContent = data.display;
+  } else {
+    pre.textContent = 'nmap …';
+  }
+}
+
+for (const id of ['name', 'target_scope', 'port_spec', 'timing', 'field_open_ports', 'field_service_version']) {
+  document.getElementById(id).addEventListener('input', updatePreview);
+  document.getElementById(id).addEventListener('change', updatePreview);
+}
+
+async function saveProfile(e) {
+  e.preventDefault();
+  const id = document.getElementById('profile_id').value;
+  const versionToken = document.getElementById('version_token').value;
+  const body = readForm();
+  const headers = {'Content-Type': 'application/json', 'x-csrf-token': csrfToken()};
+
+  let resp;
+  if (id) {
+    body.version_token = parseInt(versionToken, 10);
+    resp = await fetch(`/api/profiles/${id}`, {method: 'PUT', headers, body: JSON.stringify(body)});
+  } else {
+    resp = await fetch('/api/profiles', {method: 'POST', headers, body: JSON.stringify(body)});
+  }
+
+  if (resp.ok) {
+    window.location.href = '/profiles';
+  } else {
+    const data = await resp.json().catch(() => ({}));
+    document.getElementById('form-error').textContent =
+      JSON.stringify((data.error && data.error.fields) || data.error || 'Save failed.');
+  }
+  return false;
+}
+
+// Feature 009: scan immediately from the editor as a one-off ad-hoc run,
+// without saving the profile. Requires a target.
+async function scanNow() {
+  const body = readForm();
+  const errEl = document.getElementById('form-error');
+  if (!body.target_scope.length) {
+    errEl.textContent = '{{ t("scan_config.target_required_hint") }}';
+    return;
+  }
+  const headers = {'Content-Type': 'application/json', 'x-csrf-token': csrfToken()};
+  const resp = await fetch('/api/runs/ad-hoc', {method: 'POST', headers, body: JSON.stringify(body)});
+  const data = await resp.json().catch(() => ({}));
+  if ((resp.status === 202 || resp.status === 200) && data.run_id) {
+    window.location.href = `/runs/${data.run_id}`;
+  } else {
+    errEl.textContent = JSON.stringify((data.error && data.error.fields) || (data.error && data.error.message) || 'Could not start scan.');
+  }
+}
+
+loadNseScripts();
+</script>
+{% endblock %}

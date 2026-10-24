@@ -1,0 +1,14 @@
+# Normalize to LF in the repo regardless of the authoring OS. This project
+# is developed on Windows but deployed on Kali Linux — a CRLF shebang line
+# (e.g. in a future deploy/*.sh) fails on Linux with "bad interpreter", so
+# text files are stored and checked out as LF everywhere.
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.py text eol=lf
+
+# Binary assets — never line-ending-normalize these.
+*.sqlite3 binary
+*.ttf binary
+*.woff2 binary
+*.key binary

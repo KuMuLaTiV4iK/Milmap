@@ -1,0 +1,36 @@
+name: CI
+
+# Runs lint + the full test suite, including the device-safety and
+# offline invariant checks (constitution Principle III, FR-034/FR-037/
+# FR-038) — see quickstart.md "Key invariants to assert in CI".
+#
+# Note: this workflow has internet access (GitHub-hosted runners aren't
+# air-gapped) to install dependencies from PyPI; the application itself
+# remains air-gapped at runtime, and the tests never require internet —
+# nmap and real network devices are mocked throughout (see tests/conftest.py).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Lint (ruff)
+        run: ruff check src/ tests/
+
+      - name: Run tests
+        run: pytest tests/ -q

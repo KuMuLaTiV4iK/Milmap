@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ t('history.title') }} — {{ t('app.brand') }}{% endblock %}
+{% block content %}
+<h1>{{ t('history.title') }}</h1>
+<div style="margin-bottom:0.5rem;">
+  <a href="{{ '/history' if include_archived else '/history?include_archived=true' }}">{{ t('common.show_archived') }}{{ ' ✓' if include_archived else '' }}</a>
+</div>
+<input type="search" id="history-search" class="table-search"
+       placeholder="{{ t('common.search_placeholder') }}" aria-label="{{ t('common.search_placeholder') }}">
+<div class="hud-panel"><div class="table-scroll">
+<table id="history-table">
+  <thead>
+    <tr><th>{{ t('history.col_started') }}</th><th>{{ t('history.col_profile') }}</th><th>{{ t('history.col_target') }}</th><th>{{ t('history.col_status') }}</th><th>{{ t('history.col_hosts') }}</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for r in runs %}
+    <tr>
+      <td data-sort="{{ r.started_at }}">{{ r.started_at | localts }}</td>
+      <td>{{ r.profile_name }}</td>
+      <td>{{ r.params_used.target_scope | join(', ') if r.params_used and r.params_used.target_scope else '—' }}</td>
+      <td><span class="badge {{ 'badge-compliant' if r.status == 'completed' else ('badge-failed' if r.status == 'failed' else 'badge-running') }}">{{ r.status }}</span></td>
+      <td>{{ r.summary.hosts if r.summary.hosts is not none else '—' }}</td>
+      <td>
+        <a href="/runs/{{ r.id }}">{{ t('dashboard.view') }}</a>
+        <a class="btn" href="/schedules?from_run={{ r.id }}">{{ t('history.schedule_this_scan') }}</a>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6">{{ t('history.none') }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div></div>
+<script>
+  enableTableSort(document.getElementById('history-table'));
+  enableTableSearch(document.getElementById('history-search'), document.getElementById('history-table'));
+</script>
+{% endblock %}

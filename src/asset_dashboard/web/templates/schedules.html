@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block title %}{{ t('schedules.title') }} — {{ t('app.brand') }}{% endblock %}
+{% block content %}
+<h1>{{ t('schedules.title') }}</h1>
+
+<h2 id="schedule-form-title">{{ t('schedules.new') }}</h2>
+<p id="prefill-note" class="prefill-note" style="display:none;">{{ t('schedules.prefill_note') }}</p>
+<form id="schedule-form" onsubmit="return submitSchedule(event)">
+  <input type="hidden" name="schedule_id" value="">
+  <select name="profile_id" required>
+    {% for p in profiles %}
+    <option value="{{ p.id }}">{{ p.name }}</option>
+    {% endfor %}
+  </select>
+  <input type="text" name="target_scope" placeholder="{{ t('schedules.target_scope') }}">
+  <input type="text" name="label" placeholder="{{ t('schedules.label_placeholder') }}">
+
+  <label>{{ t('schedules.kind') }}
+    <select name="recurrence_kind" onchange="onKindChange()">
+      <option value="once">{{ t('schedules.kind_once') }}</option>
+      <option value="interval">{{ t('schedules.kind_interval') }}</option>
+    </select>
+  </label>
+
+  <span id="once-group" class="recurrence-group">
+    <label>{{ t('schedules.once_day') }}
+      <input type="date" name="once_day">
+    </label>
+    <label>{{ t('schedules.once_hour') }}
+      <input type="number" name="once_hour" min="0" max="23" value="0">
+    </label>
+    <label>{{ t('schedules.once_minute') }}
+      <input type="number" name="once_minute" min="0" max="59" value="0">
+    </label>
+  </span>
+
+  <span id="interval-group" class="recurrence-group" style="display:none;">
+    <label>{{ t('schedules.interval_every') }}
+      <input type="number" name="interval_every" min="1" step="1" value="1"
+             placeholder="{{ t('schedules.interval_count') }}">
+    </label>
+    <select name="interval_unit">
+      <option value="minute">{{ t('schedules.unit_minute') }}</option>
+      <option value="hour">{{ t('schedules.unit_hour') }}</option>
+      <option value="day">{{ t('schedules.unit_day') }}</option>
+      <option value="week">{{ t('schedules.unit_week') }}</option>
+      <option value="month">{{ t('schedules.unit_month') }}</option>
+    </select>
+  </span>
+
+  <label id="enabled-wrap" style="display:none;">
+    <input type="checkbox" name="enabled" checked> {{ t('schedules.enabled_label') }}
+  </label>
+
+  <button type="submit" class="btn btn-primary" id="schedule-submit">{{ t('schedules.save') }}</button>
+  <button type="button" class="btn" id="schedule-cancel" style="display:none;"
+          onclick="resetToCreateMode()">{{ t('schedules.cancel') }}</button>
+</form>
+<div id="schedule-error" class="error-region" role="alert" style="display:none;"></div>
+
+<div style="margin:1rem 0 0.5rem;">
+  <a href="{{ '/schedules' if include_archived else '/schedules?include_archived=true' }}">{{ t('common.show_archived') }}{{ ' ✓' if include_archived else '' }}</a>
+</div>
+<input type="search" id="schedules-search" class="table-search"
+       placeholder="{{ t('common.search_placeholder') }}" aria-label="{{ t('common.search_placeholder') }}">
+<div class="hud-panel"><div class="table-scroll">
+<table id="schedules-table">
+  <thead>
+    <tr>
+      <th>{{ t('schedules.col_profile') }}</th>
+      <th>{{ t('schedules.col_target') }}</th>
+      <th>{{ t('schedules.col_label') }}</th>
+      <th>{{ t('schedules.col_recurrence') }}</th>
+      <th>{{ t('schedules.col_enabled') }}</th>
+      <th>{{ t('schedules.col_next_run') }}</th>
+      <th>{{ t('schedules.col_last_run') }}</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id="schedules-tbody">
+    {% for s in schedules %}
+    <tr id="schedule-row-{{ s.id }}"
+        data-id="{{ s.id }}"
+        data-profile-id="{{ s.profile_id }}"
+        data-label="{{ s.label or '' }}"
+        data-target="{{ s.target_scope | join(', ') }}"
+        data-enabled="{{ '1' if s.enabled else '0' }}"
+        data-recurrence="{{ s.recurrence | tojson | forceescape }}">
+      <td><a href="/profiles/{{ s.profile_id }}">{{ s.profile_name }}</a></td>
+      <td>{{ s.target_scope | join(', ') }}</td>
+      <td>{{ s.label or '—' }}</td>
+      <td>
+        {{ humanize_recurrence(s.recurrence) }}
+        {% if is_completed_once(s) %}<span class="badge">{{ t('schedules.completed') }}</span>{% endif %}
+      </td>
+      <td>{{ t('history.yes') if s.enabled else t('history.no') }}</td>
+      <td data-sort="{{ s.next_run_at }}">{{ s.next_run_at | localts }}</td>
+      <td data-sort="{{ s.last_triggered_at or '' }}">{{ (s.last_triggered_at | localts) or '—' }}</td>
+      <td>
+        <button class="btn" onclick="editSchedule('{{ s.id }}')">{{ t('schedules.edit') }}</button>
+        <button class="btn btn-danger" onclick="deleteSchedule('{{ s.id }}')">{{ t('schedules.delete') }}</button>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8">{{ t('schedules.none') }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div></div>
+<script>
+  enableTableSort(document.getElementById('schedules-table'));
+  enableTableSearch(document.getElementById('schedules-search'), document.getElementById('schedules-table'));
+</script>
+
+<script>
+function csrfToken() {
+  return document.cookie.split('; ').find(c => c.startsWith('csrf_token='))?.split('=')[1] || '';
+}
+
+const scheduleForm = document.getElementById('schedule-form');
+const errorBox = document.getElementById('schedule-error');
+
+function onKindChange() {
+  const kind = scheduleForm.recurrence_kind.value;
+  document.getElementById('once-group').style.display = kind === 'once' ? '' : 'none';
+  document.getElementById('interval-group').style.display = kind === 'interval' ? '' : 'none';
+}
+
+function showError(msg) {
+  errorBox.textContent = msg;
+  errorBox.style.display = 'block';
+}
+
+function clearError() {
+  errorBox.textContent = '';
+  errorBox.style.display = 'none';
+}
+
+function resetToCreateMode() {
+  scheduleForm.reset();
+  scheduleForm.schedule_id.value = '';
+  scheduleForm.recurrence_kind.value = 'once';
+  onKindChange();
+  document.getElementById('schedule-form-title').textContent = {{ t('schedules.new') | tojson }};
+  document.getElementById('schedule-submit').textContent = {{ t('schedules.save') | tojson }};
+  document.getElementById('schedule-cancel').style.display = 'none';
+  document.getElementById('enabled-wrap').style.display = 'none';
+  clearError();
+}
+
+// Build the recurrence object from the form; converts a once day/hour/minute
+// (the host's local time) into an absolute naive-UTC ISO instant.
+function buildRecurrence() {
+  const kind = scheduleForm.recurrence_kind.value;
+  if (kind === 'once') {
+    const day = scheduleForm.once_day.value;            // "YYYY-MM-DD" (local)
+    const [y, m, d] = day.split('-').map(Number);
+    const hour = Number(scheduleForm.once_hour.value || 0);
+    const minute = Number(scheduleForm.once_minute.value || 0);
+    const local = new Date(y, (m || 1) - 1, d || 1, hour, minute, 0, 0);
+    return {type: 'once', run_at: local.toISOString()};  // UTC instant
+  }
+  return {
+    type: 'interval',
+    every: Number(scheduleForm.interval_every.value || 1),
+    unit: scheduleForm.interval_unit.value,
+  };
+}
+
+async function submitSchedule(evt) {
+  evt.preventDefault();
+  clearError();
+  const scheduleId = scheduleForm.schedule_id.value;
+  const targetScope = (scheduleForm.target_scope.value || '')
+    .split(',').map(s => s.trim()).filter(Boolean);
+  const body = {
+    recurrence: buildRecurrence(),
+    label: scheduleForm.label.value || null,
+    target_scope: targetScope.length ? targetScope : undefined,
+  };
+
+  let url, method;
+  if (scheduleId) {
+    url = `/api/schedules/${scheduleId}`;
+    method = 'PUT';
+    body.enabled = scheduleForm.enabled.checked;
+  } else {
+    url = `/api/profiles/${scheduleForm.profile_id.value}/schedules`;
+    method = 'POST';
+  }
+
+  const resp = await fetch(url, {
+    method,
+    headers: {'Content-Type': 'application/json', 'x-csrf-token': csrfToken()},
+    body: JSON.stringify(body),
+  });
+
+  if (resp.ok) {
+    window.location.reload();
+    return false;
+  }
+  const errData = await resp.json().catch(() => ({}));
+  const fieldMsg = errData.error && errData.error.fields && errData.error.fields.recurrence;
+  showError(fieldMsg || (errData.error && errData.error.message) || 'Could not save schedule.');
+  return false;
+}
+
+function editSchedule(scheduleId) {
+  const row = document.getElementById(`schedule-row-${scheduleId}`);
+  if (!row) return;
+  const recurrence = JSON.parse(row.dataset.recurrence);
+  clearError();
+
+  scheduleForm.schedule_id.value = scheduleId;
+  scheduleForm.profile_id.value = row.dataset.profileId;
+  scheduleForm.profile_id.disabled = true;  // edit keeps the schedule's profile
+  scheduleForm.label.value = row.dataset.label || '';
+  scheduleForm.target_scope.value = row.dataset.target || '';
+
+  if (recurrence.type === 'once') {
+    scheduleForm.recurrence_kind.value = 'once';
+    const local = new Date(recurrence.run_at);          // UTC -> local
+    const pad = n => String(n).padStart(2, '0');
+    scheduleForm.once_day.value =
+      `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}`;
+    scheduleForm.once_hour.value = local.getHours();
+    scheduleForm.once_minute.value = local.getMinutes();
+  } else {
+    scheduleForm.recurrence_kind.value = 'interval';
+    scheduleForm.interval_every.value = recurrence.every || 1;
+    scheduleForm.interval_unit.value = recurrence.unit || 'hour';
+  }
+  onKindChange();
+
+  scheduleForm.enabled.checked = row.dataset.enabled === '1';
+  document.getElementById('enabled-wrap').style.display = '';
+  document.getElementById('schedule-form-title').textContent = {{ t('schedules.edit') | tojson }};
+  document.getElementById('schedule-submit').textContent = {{ t('schedules.save_changes') | tojson }};
+  document.getElementById('schedule-cancel').style.display = '';
+  scheduleForm.scrollIntoView({behavior: 'smooth'});
+}
+
+// Re-enable the (disabled-during-edit) profile select before submitting so
+// resetToCreateMode / a fresh create works; also keep it enabled for create.
+scheduleForm.addEventListener('submit', () => { scheduleForm.profile_id.disabled = false; });
+
+async function deleteSchedule(scheduleId) {
+  const resp = await fetch(`/api/schedules/${scheduleId}`, {
+    method: 'DELETE',
+    headers: {'x-csrf-token': csrfToken()},
+  });
+  if (resp.status === 204) {
+    document.getElementById(`schedule-row-${scheduleId}`)?.remove();
+  } else {
+    showError('Could not delete schedule.');
+  }
+}
+
+onKindChange();
+
+// Prefill from a "Schedule this scan" link (?from_run=…): the server resolved
+// the run's profile + target; drop them into the create form and surface the
+// hint. Recurrence is left for the operator to choose.
+const prefill = {{ prefill | tojson }};
+if (prefill) {
+  if (prefill.profile_id) scheduleForm.profile_id.value = prefill.profile_id;
+  if (prefill.target_scope) scheduleForm.target_scope.value = prefill.target_scope;
+  document.getElementById('prefill-note').style.display = '';
+  scheduleForm.scrollIntoView({behavior: 'smooth'});
+}
+</script>
+{% endblock %}

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ t('app.brand') }}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/base.css">
+  <script src="/static/htmx.min.js" defer></script>
+</head>
+<body>
+  {% include "_hud.html" %}
+  {% if session_user %}
+  <header class="app-header">
+    <div class="brand"><svg aria-hidden="true" focusable="false" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#b9c0bd" stroke="#202725" stroke-width="2"/><circle cx="32" cy="32" r="26" fill="#03140d" stroke="#59635e" stroke-width="1.5"/><path d="M32 32V6A26 26 0 0 1 51 14Z" fill="#21df58" opacity="0.9"/><g fill="none" stroke="#3a9a58" stroke-width="0.7" opacity="0.55"><circle cx="32" cy="32" r="7"/><circle cx="32" cy="32" r="14"/><circle cx="32" cy="32" r="21"/><path d="M6 32h52M32 6v52M13.6 13.6l36.8 36.8M50.4 13.6 13.6 50.4"/></g><path d="M32 32V6" stroke="#80ff9b" stroke-width="1.5"/><circle cx="32" cy="32" r="2.5" fill="#050908" stroke="#0b2817" stroke-width="1"/></svg>{{ t('app.brand') }}</div>
+    <nav>
+      <span class="nav-frame" aria-hidden="true"></span>
+      <a href="/">{{ t('nav.dashboard') }}</a>
+      <a href="/profiles">{{ t('nav.profiles') }}</a>
+      <a href="/history">{{ t('nav.history') }}</a>
+      <a href="/schedules">{{ t('nav.schedules') }}</a>
+      <a href="/tools/credential-check">{{ t('nav.credential_tool') }}</a>
+      <span class="nav-dropdown">
+        <a href="/configuration" class="nav-dropdown-toggle" aria-haspopup="true" aria-expanded="false"
+           onclick="return toggleConfigMenu(event)">{{ t('nav.configuration') }}</a>{% if session_role == 'administrator' %}<span class="admin-only-tag">admin</span>{% endif %}
+        <span class="nav-dropdown-menu" role="menu">
+          <a href="/configuration#account" role="menuitem">{{ t('configuration.tab_account') }}</a>
+          <a href="/configuration#library" role="menuitem">{{ t('configuration.tab_library') }}</a>
+        </span>
+      </span>
+      <button class="btn" type="button" onclick="signOut()">{{ t('nav.signout') }} ({{ session_user }})</button>
+    </nav>
+  </header>
+  <script>
+  // Yellow frame on the current tab; it starts on the previous tab's box
+  // (kept in sessionStorage) and slides to the new one.
+  (function () {
+    const nav = document.querySelector('.app-header nav');
+    const frame = nav && nav.querySelector('.nav-frame');
+    if (!frame) return;
+    const path = location.pathname;
+    const alias = [['/runs', '/history'], ['/scan', '/profiles'], ['/tools', '/tools/credential-check']];
+    let want = path;
+    for (const [from, to] of alias) if (path === from || path.startsWith(from + '/')) want = to;
+    let best = null;
+    for (const a of nav.querySelectorAll('a[href]')) {
+      const h = a.getAttribute('href').split('#')[0];
+      const hit = h === '/' ? want === '/' : (want === h || want.startsWith(h + '/'));
+      if (hit && (!best || h.length > best.h.length)) best = {a, h};
+    }
+    if (!best) return;
+    best.a.classList.add('active');
+    const box = el => {
+      const n = nav.getBoundingClientRect(), r = el.getBoundingClientRect();
+      return {l: r.left - n.left, t: r.top - n.top, w: r.width, h: r.height};
+    };
+    const put = b => {
+      frame.style.left = b.l + 'px'; frame.style.top = b.t + 'px';
+      frame.style.width = b.w + 'px'; frame.style.height = b.h + 'px';
+    };
+    const cur = box(best.a);
+    let prev = null;
+    try { prev = JSON.parse(sessionStorage.getItem('navFrame') || 'null'); } catch (e) {}
+    put(prev || cur);
+    frame.classList.add('ready');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      frame.classList.add('animate');
+      put(cur);
+    }));
+    try { sessionStorage.setItem('navFrame', JSON.stringify(cur)); } catch (e) {}
+    window.addEventListener('resize', () => { frame.classList.remove('animate'); put(box(best.a)); });
+  })();
+  </script>
+  <script>
+  function toggleConfigMenu(e) {
+    e.preventDefault();
+    const toggle = e.currentTarget;
+    const menu = toggle.parentElement;
+    const open = menu.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    return false;
+  }
+  document.addEventListener('click', function (e) {
+    for (const menu of document.querySelectorAll('.nav-dropdown.open')) {
+      if (!menu.contains(e.target)) {
+        menu.classList.remove('open');
+        menu.querySelector('.nav-dropdown-toggle')?.setAttribute('aria-expanded', 'false');
+      }
+    }
+  });
+  async function signOut() {
+    const csrf = document.cookie.split('; ').find(c => c.startsWith('csrf_token='))?.split('=')[1] || '';
+    try {
+      await fetch('/api/auth/logout', {method: 'POST', headers: {'x-csrf-token': csrf}});
+    } catch (err) { /* fall through to the login page regardless */ }
+    window.location.href = '/login';
+  }
+
+  // Shared client-side timestamp formatter: render an ISO timestamp in the
+  // host's local time zone as DD.MM.YY HH:MM:SS, matching the server format.
+  // A zone-less (naive) timestamp is read as UTC, the way the server stores it.
+  window.fmtTs = function (value) {
+    if (value === null || value === undefined || value === '' || value === '—') return value || '';
+    let s = String(value);
+    if (/T\d{2}:\d{2}/.test(s) && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) s += 'Z';
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return value;
+    const p = new Intl.DateTimeFormat('en-GB', {
+      year: '2-digit', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    }).formatToParts(d).reduce((acc, part) => { acc[part.type] = part.value; return acc; }, {});
+    return `${p.day}.${p.month}.${p.year} ${p.hour}:${p.minute}:${p.second}`;
+  };
+
+  // Shared click-to-sort for any <table>: attaches handlers to every
+  // non-empty <thead> header cell. Reads each row's current cells at
+  // click time (not a cached snapshot), so it works for both
+  // server-rendered tables and ones a page rebuilds via JS on reload.
+  // A cell can opt into a non-text sort key (e.g. the raw ISO instant
+  // behind a localized "DD.MM.YY HH:MM:SS" display) via
+  // `data-sort="<value>"` — this matters for timestamp columns, where
+  // comparing the *formatted* text would not sort chronologically.
+  window.enableTableSort = function (table) {
+    const thead = table.tHead;
+    if (!thead || !table.tBodies.length) return;
+    const headerRow = thead.rows[thead.rows.length - 1];
+    Array.from(headerRow.cells).forEach((th, idx) => {
+      if (!th.textContent.trim() || th.dataset.sortBound) return;
+      th.dataset.sortBound = '1';
+      th.classList.add('sortable-th');
+      th.addEventListener('click', () => {
+        const nextDir = th.dataset.sortDir === 'asc' ? 'desc' : 'asc';
+        Array.from(headerRow.cells).forEach(h => {
+          delete h.dataset.sortDir;
+          h.classList.remove('sort-asc', 'sort-desc');
+        });
+        th.dataset.sortDir = nextDir;
+        th.classList.add(nextDir === 'asc' ? 'sort-asc' : 'sort-desc');
+
+        const tbody = table.tBodies[0];
+        const allRows = Array.from(tbody.rows);
+        // An empty-state row ("Записів ще немає") spans every column —
+        // never reorder it into the data.
+        const dataRows = allRows.filter(r => r.cells.length > 1 || !r.cells[0]?.hasAttribute('colspan'));
+        const cellKey = row => {
+          const cell = row.cells[idx];
+          if (!cell) return '';
+          return cell.dataset.sort !== undefined ? cell.dataset.sort : cell.textContent.trim();
+        };
+        dataRows.sort((a, b) => {
+          const av = cellKey(a);
+          const bv = cellKey(b);
+          const an = Number(av.replace(',', '.'));
+          const bn = Number(bv.replace(',', '.'));
+          const bothNumeric = av !== '' && bv !== '' && !isNaN(an) && !isNaN(bn);
+          const cmp = bothNumeric ? an - bn : av.localeCompare(bv, 'uk', {sensitivity: 'base', numeric: true});
+          return nextDir === 'asc' ? cmp : -cmp;
+        });
+        dataRows.forEach(r => tbody.appendChild(r));
+      });
+    });
+  };
+
+  // Shared substring search: hides <tbody> rows whose text doesn't match
+  // `query` (case-insensitive, diacritics-insensitive). Exposed as a
+  // standalone function (not just an input listener) so a page that
+  // rebuilds its own tbody via fetch can re-apply the current query
+  // after each reload, instead of losing the filter.
+  window.filterTable = function (table, query) {
+    const q = (query || '').trim().toLocaleLowerCase('uk');
+    const tbody = table.tBodies[0];
+    if (!tbody) return;
+    for (const row of tbody.rows) {
+      if (row.cells.length === 1 && row.cells[0].hasAttribute('colspan')) continue; // empty-state row
+      row.style.display = !q || row.textContent.toLocaleLowerCase('uk').includes(q) ? '' : 'none';
+    }
+  };
+
+  window.enableTableSearch = function (input, table) {
+    input.addEventListener('input', () => window.filterTable(table, input.value));
+  };
+  </script>
+  {% endif %}
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

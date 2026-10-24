@@ -1,0 +1,25 @@
+{# Shared Jinja macros: the "?" help annotation (FR-038). #}
+{% macro help_icon(control_id) %}
+{%- set text = help_for(control_id) -%}
+{%- if text -%}
+<span class="help-icon" tabindex="0" role="note" aria-label="{{ t('common.help') }}: {{ text }}" title="{{ text }}">?</span>
+{%- endif -%}
+{% endmacro %}
+
+{% macro field_label(text, control_id) %}
+<span class="field-label">{{ text }} {{ help_icon(control_id) }}</span>
+{% endmacro %}
+
+{% macro profile_row(p) %}
+<tr id="profile-row-{{ p.id }}">
+  <td>{{ p.name }}</td>
+  <td>{{ p.target_scope | join(', ') if p.target_scope else t('dashboard.target_less_hint') }}</td>
+  <td>{{ p.port_spec }}</td>
+  <td>
+    <a class="btn" href="/profiles/{{ p.id }}">{{ t('profiles.edit') }}</a>
+    <a class="btn btn-primary" href="/profiles/{{ p.id }}/scan">{{ t('profiles.run_now') }}</a>
+    <button class="btn" hx-post="/api/profiles/{{ p.id }}/duplicate" hx-target="#profiles-tbody" hx-swap="beforeend" hx-on::response-error="profilesListError(event)">{{ t('profiles.duplicate') }}</button>
+    <button class="btn btn-danger" hx-delete="/api/profiles/{{ p.id }}" hx-target="#profile-row-{{ p.id }}" hx-swap="outerHTML" hx-confirm="{{ t('profiles.delete_confirm') }} '{{ p.name }}'?" hx-on::response-error="profilesListError(event)">{{ t('profiles.delete') }}</button>
+  </td>
+</tr>
+{% endmacro %}

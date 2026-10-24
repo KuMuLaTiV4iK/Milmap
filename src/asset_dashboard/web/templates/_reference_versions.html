@@ -1,0 +1,220 @@
+{# Reusable version-dictionary ("Довідник версій") card (V0.7 overhaul,
+   FR-009-FR-011). Self-contained: loads its own rows from
+   GET /api/reference-versions and handles add/edit/delete via the API, so
+   it works embedded in the Configuration page for both admins and
+   operators without a full reload. Each row is a minimum-version
+   threshold keyed by vendor(+model); `type` (a physical-device category)
+   is classification only — it plays no role in compliance matching. The
+   table's last data column shows the entry's last-updated/imported time,
+   not a note (the note itself is still editable in the form, and still
+   feeds the compliance remediation message — see compliance/version_check.py).
+   The add-record controls sit ABOVE the table (not below it) since the
+   table can run to hundreds of rows — scrolling past it to reach "add"
+   every time would be the inconvenient part. JS is namespaced (rv*) and
+   wrapped in an IIFE to avoid colliding with the Configuration page's
+   own helpers (e.g. csrfToken). #}
+<div class="card" id="reference-versions-card">
+  <h2>{{ t('reference_versions.title') }}</h2>
+
+  <h3>{{ t('reference_versions.add') }}</h3>
+  <form id="reference-version-form" onsubmit="return rvSaveEntry(event)">
+    <input type="hidden" name="entry_id" value="">
+    <input type="text" name="type" list="reference-version-type-options" placeholder="{{ t('reference_versions.col_type') }}" required>
+    <datalist id="reference-version-type-options">
+      <option value="IP-телефон">
+      <option value="VoIP-шлюз">
+      <option value="Сервіс">
+      <option value="АТС">
+      <option value="Комутатор">
+      <option value="Маршрутизатор">
+    </datalist>
+    <input type="text" name="vendor" placeholder="{{ t('reference_versions.col_vendor') }}" required>
+    <input type="text" name="model" placeholder="{{ t('reference_versions.col_model') }}">
+    <input type="text" name="min_version" placeholder="{{ t('reference_versions.col_min_version') }}" required>
+    <input type="text" name="note" placeholder="{{ t('reference_versions.col_note') }}">
+    <button type="submit" class="btn btn-primary">{{ t('reference_versions.save') }}</button>
+  </form>
+  <div id="reference-version-error" class="form-error" role="alert" style="display:none;"></div>
+
+  <div id="reference-versions-needs-review" style="display:none;" class="form-error">
+    <strong>{{ t('reference_versions.needs_review_title') }}</strong>
+    <ul id="reference-versions-needs-review-list"></ul>
+  </div>
+
+  <input type="search" id="reference-versions-search" class="table-search"
+         placeholder="{{ t('common.search_placeholder') }}" aria-label="{{ t('common.search_placeholder') }}">
+  <div class="table-scroll">
+  <table id="reference-versions-table">
+    <thead>
+      <tr>
+        <th>{{ t('reference_versions.col_type') }}</th>
+        <th>{{ t('reference_versions.col_vendor') }}</th>
+        <th>{{ t('reference_versions.col_model') }}</th>
+        <th>{{ t('reference_versions.col_min_version') }}</th>
+        <th>{{ t('reference_versions.col_imported_at') }}</th>
+        <th>{{ t('reference_versions.col_source') }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="reference-versions-tbody">
+      <tr><td colspan="7">{{ t('reference_versions.none') }}</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<script>
+(function () {
+  const EMPTY_MSG = {{ t('reference_versions.none') | tojson }};
+  const EDIT_LABEL = {{ t('profiles.edit') | tojson }};
+  const DELETE_LABEL = {{ t('reference_versions.delete') | tojson }};
+  const SOURCE_MANUAL = {{ t('reference_versions.source_manual') | tojson }};
+  const SOURCE_INGESTED = {{ t('reference_versions.source_ingested') | tojson }};
+  const NEEDS_REVIEW_SUFFIX = {{ t('reference_versions.needs_review_suffix') | tojson }};
+  // Translates rows saved under the OLD English-code datalist (before
+  // this list switched to storing the Ukrainian label itself) — a
+  // value not in this map (any new entry, or free-form import text like
+  // "UCM.Sys") just falls back to its literal value below.
+  const TYPE_LABELS = {
+    ip_phone: 'IP-телефон',
+    voip_gateway: 'VoIP-шлюз',
+    service: 'Сервіс',
+    ucm: 'АТС',
+    switch: 'Комутатор',
+    router: 'Маршрутизатор',
+  };
+
+  const table = document.getElementById('reference-versions-table');
+  const searchInput = document.getElementById('reference-versions-search');
+
+  function rvCsrf() {
+    return document.cookie.split('; ').find(c => c.startsWith('csrf_token='))?.split('=')[1] || '';
+  }
+
+  async function rvLoad() {
+    const resp = await fetch('/api/reference-versions', {headers: {'Accept': 'application/json'}});
+    if (!resp.ok) return;
+    const entries = await resp.json();
+    const tbody = document.getElementById('reference-versions-tbody');
+    tbody.innerHTML = '';
+    if (!entries.length) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 7;
+      td.textContent = EMPTY_MSG;
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    }
+    const needsReview = [];
+    for (const e of entries) {
+      const tr = document.createElement('tr');
+      tr.id = `reference-version-row-${e.id}`;
+      // Build text cells safely (no innerHTML interpolation of user data).
+      for (const [value, sortValue] of [
+        [TYPE_LABELS[e.type] || e.type || '—', null],
+        [e.vendor, null],
+        [e.model || '—', null],
+        [e.min_version || '—', null],
+        [(typeof fmtTs === 'function' ? fmtTs(e.updated_at) : e.updated_at) || '—', e.updated_at || ''],
+        [e.source === 'ingested' ? SOURCE_INGESTED : SOURCE_MANUAL, null],
+      ]) {
+        const td = document.createElement('td');
+        td.textContent = value;
+        if (sortValue !== null) td.dataset.sort = sortValue;
+        tr.appendChild(td);
+      }
+      const actions = document.createElement('td');
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn';
+      editBtn.textContent = EDIT_LABEL;
+      editBtn.addEventListener('click', () => rvEditEntry(e));
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn btn-danger';
+      delBtn.textContent = DELETE_LABEL;
+      delBtn.addEventListener('click', () => rvDeleteEntry(e.id));
+      actions.appendChild(editBtn);
+      actions.appendChild(document.createTextNode(' '));
+      actions.appendChild(delBtn);
+      tr.appendChild(actions);
+      tbody.appendChild(tr);
+      if (e.needs_review) needsReview.push(e);
+    }
+
+    const reviewBox = document.getElementById('reference-versions-needs-review');
+    const reviewList = document.getElementById('reference-versions-needs-review-list');
+    reviewList.innerHTML = '';
+    if (needsReview.length) {
+      for (const e of needsReview) {
+        const li = document.createElement('li');
+        li.textContent = `${e.vendor}${e.model ? ' / ' + e.model : ''}${NEEDS_REVIEW_SUFFIX}`;
+        reviewList.appendChild(li);
+      }
+      reviewBox.style.display = 'block';
+    } else {
+      reviewBox.style.display = 'none';
+    }
+
+    enableTableSort(table);
+    filterTable(table, searchInput.value);
+  }
+
+  function rvEditEntry(entry) {
+    const form = document.getElementById('reference-version-form');
+    form.entry_id.value = entry.id;
+    form.type.value = entry.type || '';
+    form.vendor.value = entry.vendor;
+    form.model.value = entry.model || '';
+    form.min_version.value = entry.min_version || '';
+    form.note.value = entry.note || '';
+    form.scrollIntoView({behavior: 'smooth'});
+  }
+
+  async function rvDeleteEntry(id) {
+    const resp = await fetch(`/api/reference-versions/${id}`, {
+      method: 'DELETE',
+      headers: {'x-csrf-token': rvCsrf()},
+    });
+    if (resp.status === 204) {
+      rvLoad();
+    } else {
+      alert('Could not delete entry.');
+    }
+  }
+
+  window.rvSaveEntry = async function (evt) {
+    evt.preventDefault();
+    const form = evt.target;
+    const data = new FormData(form);
+    const entryId = data.get('entry_id');
+    const body = {
+      type: data.get('type'),
+      vendor: data.get('vendor'),
+      model: data.get('model') || null,
+      min_version: data.get('min_version'),
+      note: data.get('note') || null,
+    };
+    const url = entryId ? `/api/reference-versions/${entryId}` : '/api/reference-versions';
+    const method = entryId ? 'PUT' : 'POST';
+    const resp = await fetch(url, {
+      method,
+      headers: {'Content-Type': 'application/json', 'x-csrf-token': rvCsrf()},
+      body: JSON.stringify(body),
+    });
+    const box = document.getElementById('reference-version-error');
+    if (resp.status === 200 || resp.status === 201) {
+      box.style.display = 'none';
+      form.reset();
+      form.entry_id.value = '';
+      rvLoad();
+    } else {
+      const errData = await resp.json().catch(() => ({}));
+      box.textContent = (errData.error && errData.error.message) || 'Could not save entry.';
+      box.style.display = 'block';
+    }
+    return false;
+  };
+
+  enableTableSearch(searchInput, table);
+  rvLoad();
+})();
+</script>

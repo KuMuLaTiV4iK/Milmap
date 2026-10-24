@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}{{ t('configuration.title') }} — {{ t('app.brand') }}{% endblock %}
+{% block content %}
+<h1>{{ t('configuration.title') }}</h1>
+
+<section id="config-account" class="config-section">
+<div class="card">
+  <h2>{{ t('configuration.account') }}</h2>
+  <form id="password-form" onsubmit="return changeOwnPassword(event)">
+    <div class="inline-form-row">
+    <div>
+      {{ m.field_label(t('configuration.current_password'), 'account_current_password') }}<br>
+      <input type="password" id="current_password" required>
+    </div>
+    <div>
+      {{ m.field_label(t('configuration.new_password'), 'account_new_password') }}<br>
+      <input type="password" id="new_password" required>
+    </div>
+    <button class="btn btn-primary" type="submit">{{ t('configuration.save') }}</button>
+    </div>
+    <div id="password-error" class="form-error"></div>
+    <div id="password-success" style="color:var(--color-success);"></div>
+  </form>
+</div>
+
+{% if session_role == 'administrator' %}
+<div class="card" id="users-card">
+  <h2>{{ t('configuration.users') }}</h2>
+  <div class="table-scroll">
+  <table id="users-table">
+    <thead><tr><th>{{ t('configuration.username') }}</th><th>{{ t('configuration.role') }}</th><th>{{ t('configuration.status') }}</th><th></th></tr></thead>
+    <tbody id="users-tbody"></tbody>
+  </table>
+  </div>
+  <h3>{{ t('configuration.new_user') }}</h3>
+  <form id="user-form" onsubmit="return createUser(event)">
+    <input id="new_username" placeholder="{{ t('configuration.username') }}" required>
+    <input id="new_user_password" type="password" placeholder="Пароль" required>
+    {{ m.help_icon('user_role') }}
+    <select id="new_user_role">
+      <option value="operator">{{ t('configuration.role_operator') }}</option>
+      <option value="administrator">{{ t('configuration.role_admin') }}</option>
+    </select>
+    <button class="btn btn-primary" type="submit">{{ t('configuration.create_user') }}</button>
+  </form>
+  <div id="user-error" class="form-error"></div>
+</div>
+
+<div class="card" id="security-settings-card">
+  <h2>{{ t('configuration.security_settings') }}</h2>
+  <div class="inline-form-row">
+  <div>
+    {{ m.field_label(t('configuration.password_min_length'), 'password_min_length') }}<br>
+    <input type="number" id="password_min_length" min="20">
+  </div>
+  <div>
+    {{ m.field_label(t('configuration.lockout_threshold'), 'lockout_threshold') }}<br>
+    <input type="number" id="lockout_threshold" min="1">
+  </div>
+  <div>
+    {{ m.field_label(t('configuration.lockout_duration_seconds'), 'lockout_duration_seconds') }}<br>
+    <input type="number" id="lockout_duration_seconds" min="1">
+  </div>
+  <div>
+    {{ m.field_label(t('configuration.session_idle_timeout_seconds'), 'session_idle_timeout_seconds') }}<br>
+    <input type="number" id="session_idle_timeout_seconds" min="1">
+  </div>
+  <button class="btn btn-primary" onclick="saveSecuritySettings()">{{ t('configuration.save') }}</button>
+  </div>
+  <div id="settings-error" class="form-error"></div>
+</div>
+{% endif %}
+</section>
+
+<section id="config-library" class="config-section" style="display:none;">
+{% if session_role == 'administrator' %}
+<div class="card" id="allowlist-card">
+  <h2>{{ t('configuration.allowlist') }}</h2>
+
+  <button class="btn" type="button" onclick="importNmapScripts()">{{ t('configuration.allowlist_import_nmap') }}</button>
+  {{ m.help_icon('allowlist_import_nmap') }}
+  <div id="allowlist-import-result" style="margin-top:0.4rem;"></div>
+
+  <h3>{{ t('configuration.allowlist_add') }}</h3>
+  <form id="allowlist-form" onsubmit="return addAllowlistEntry(event)">
+    <input id="new_script_id" placeholder="mikrotik-routeros-version" required>
+    {{ m.help_icon('allowlist_script_id') }}
+    <input id="new_script_description" placeholder="{{ t('configuration.allowlist_description') }}">
+    <select id="new_script_safety">
+      <option value="safe">safe</option>
+      <option value="other">other</option>
+    </select>
+    {{ m.help_icon('allowlist_safety') }}
+    <input id="new_script_ports" placeholder="8291,8292 ({{ t('configuration.allowlist_ports_hint') }})">
+    {{ m.help_icon('allowlist_expected_ports') }}
+    <button class="btn btn-primary" type="submit">{{ t('configuration.allowlist_add') }}</button>
+  </form>
+  <div id="allowlist-warning" class="form-error"></div>
+
+  <div class="table-scroll">
+  <table id="allowlist-table">
+    <thead><tr><th>{{ t('configuration.allowlist_script_id') }}</th><th>{{ t('configuration.allowlist_description') }}</th><th>{{ t('configuration.allowlist_safety') }}</th><th>{{ t('configuration.allowlist_expected_ports') }}</th><th>{{ t('configuration.allowlist_enabled') }}</th><th></th></tr></thead>
+    <tbody id="allowlist-tbody"></tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+{% if session_role == 'administrator' %}
+{% include "_version_ingestion.html" %}
+{% endif %}
+{% include "_reference_versions.html" %}
+</section>
+
+<script>
+function csrfToken() {
+  return document.cookie.split('; ').find(c => c.startsWith('csrf_token='))?.split('=')[1] || '';
+}
+function headers() { return {'Content-Type': 'application/json', 'x-csrf-token': csrfToken()}; }
+
+async function changeOwnPassword(e) {
+  e.preventDefault();
+  const body = {
+    current_password: document.getElementById('current_password').value,
+    new_password: document.getElementById('new_password').value,
+  };
+  const resp = await fetch('/api/account/password', {method: 'POST', headers: headers(), body: JSON.stringify(body)});
+  const errEl = document.getElementById('password-error');
+  const okEl = document.getElementById('password-success');
+  errEl.textContent = ''; okEl.textContent = '';
+  if (resp.ok) {
+    okEl.textContent = 'OK';
+    document.getElementById('password-form').reset();
+  } else {
+    const data = await resp.json().catch(() => ({}));
+    errEl.textContent = JSON.stringify((data.error && data.error.fields) || data.error || 'Failed.');
+  }
+  return false;
+}
+
+// Section switch driven by the URL hash (#account / #library). The nav
+// "Конфігурація" dropdown links here; switching is a pure show/hide with no
+// reload, so values typed in the other section are preserved.
+function showConfigSection() {
+  const want = (location.hash.replace('#', '') === 'library') ? 'library' : 'account';
+  const account = document.getElementById('config-account');
+  const library = document.getElementById('config-library');
+  if (account) account.style.display = (want === 'account') ? '' : 'none';
+  if (library) library.style.display = (want === 'library') ? '' : 'none';
+}
+window.addEventListener('hashchange', showConfigSection);
+showConfigSection();
+
+{% if session_role == 'administrator' %}
+async function loadUsers() {
+  const resp = await fetch('/api/users');
+  if (!resp.ok) return;
+  const users = await resp.json();
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = '';
+  for (const u of users) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${u.username}</td><td>${u.role}</td><td>${u.status}</td>` +
+      `<td>
+        <button class="btn" onclick="toggleStatus('${u.id}', '${u.status}')">${u.status === 'active' ? '{{ t("configuration.deactivate") }}' : '{{ t("configuration.activate") }}'}</button>
+      </td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+async function toggleStatus(id, currentStatus) {
+  const newStatus = currentStatus === 'active' ? 'disabled' : 'active';
+  await fetch(`/api/users/${id}`, {method: 'PUT', headers: headers(), body: JSON.stringify({status: newStatus})});
+  loadUsers();
+}
+
+async function createUser(e) {
+  e.preventDefault();
+  const body = {
+    username: document.getElementById('new_username').value,
+    password: document.getElementById('new_user_password').value,
+    role: document.getElementById('new_user_role').value,
+  };
+  const resp = await fetch('/api/users', {method: 'POST', headers: headers(), body: JSON.stringify(body)});
+  const errEl = document.getElementById('user-error');
+  if (resp.ok) {
+    errEl.textContent = '';
+    document.getElementById('user-form').reset();
+    loadUsers();
+  } else {
+    const data = await resp.json().catch(() => ({}));
+    errEl.textContent = JSON.stringify((data.error && data.error.fields) || data.error || 'Failed.');
+  }
+  return false;
+}
+
+async function loadSecuritySettings() {
+  const resp = await fetch('/api/settings/security');
+  if (!resp.ok) return;
+  const s = await resp.json();
+  for (const key of Object.keys(s)) {
+    const el = document.getElementById(key);
+    if (el) el.value = s[key];
+  }
+}
+
+async function saveSecuritySettings() {
+  const body = {
+    password_min_length: parseInt(document.getElementById('password_min_length').value, 10),
+    lockout_threshold: parseInt(document.getElementById('lockout_threshold').value, 10),
+    lockout_duration_seconds: parseInt(document.getElementById('lockout_duration_seconds').value, 10),
+    session_idle_timeout_seconds: parseInt(document.getElementById('session_idle_timeout_seconds').value, 10),
+  };
+  const resp = await fetch('/api/settings/security', {method: 'PUT', headers: headers(), body: JSON.stringify(body)});
+  const errEl = document.getElementById('settings-error');
+  if (resp.ok) {
+    errEl.textContent = '';
+  } else {
+    const data = await resp.json().catch(() => ({}));
+    errEl.textContent = JSON.stringify((data.error && data.error.fields) || data.error || 'Failed.');
+  }
+}
+
+async function loadAllowlist() {
+  const resp = await fetch('/api/nse-scripts');
+  if (!resp.ok) return;
+  const entries = await resp.json();
+  const tbody = document.getElementById('allowlist-tbody');
+  tbody.innerHTML = '';
+  for (const e of entries) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><code>${e.script_id}</code></td><td>${e.description || ''}</td><td>${e.safety}</td>` +
+      `<td>${(e.expected_ports || []).join(', ')}</td><td>${e.enabled ? '<span aria-label="{{ t('configuration.allowlist_enabled') }}">✓ {{ t('history.yes') }}</span>' : '—'}</td>` +
+      `<td><button class="btn" onclick="toggleAllowlistEnabled('${e.id}', ${e.enabled})">${e.enabled ? '{{ t("configuration.deactivate") }}' : '{{ t("configuration.activate") }}'}</button> ` +
+      `<button class="btn btn-danger" onclick="deleteAllowlistEntry('${e.id}')">{{ t('profiles.delete') }}</button></td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+async function toggleAllowlistEnabled(id, currentlyEnabled) {
+  await fetch(`/api/nse-scripts/${id}`, {method: 'PUT', headers: headers(), body: JSON.stringify({enabled: !currentlyEnabled})});
+  loadAllowlist();
+}
+
+async function deleteAllowlistEntry(id) {
+  await fetch(`/api/nse-scripts/${id}`, {method: 'DELETE', headers: headers()});
+  loadAllowlist();
+}
+
+// Each token is a single port ("8291") or a small range ("8291-8292",
+// expanded). A huge range like "1-65535" means "any port" in practice —
+// that case is rejected here with a clear message (leave the field
+// blank instead) rather than silently turning into NaN -> null and a
+// cryptic 422 from the server.
+function parsePortsInput(raw) {
+  const tokens = raw.split(',').map(s => s.trim()).filter(Boolean);
+  const ports = new Set();
+  for (const token of tokens) {
+    const rangeMatch = token.match(/^(\d+)-(\d+)$/);
+    if (rangeMatch) {
+      const start = Number(rangeMatch[1]);
+      const end = Number(rangeMatch[2]);
+      if (end < start || end - start > 64) {
+        throw new Error(
+          `${'{{ t("configuration.allowlist_ports_range_error") }}'} "${token}"`
+        );
+      }
+      for (let p = start; p <= end; p++) ports.add(p);
+    } else if (/^\d+$/.test(token)) {
+      ports.add(Number(token));
+    } else {
+      throw new Error(`${'{{ t("configuration.allowlist_ports_parse_error") }}'} "${token}"`);
+    }
+  }
+  return Array.from(ports);
+}
+
+async function addAllowlistEntry(e) {
+  e.preventDefault();
+  const warnEl = document.getElementById('allowlist-warning');
+  let ports;
+  try {
+    ports = parsePortsInput(document.getElementById('new_script_ports').value);
+  } catch (err) {
+    warnEl.textContent = err.message;
+    return false;
+  }
+  const body = {
+    script_id: document.getElementById('new_script_id').value,
+    description: document.getElementById('new_script_description').value,
+    safety: document.getElementById('new_script_safety').value,
+    expected_ports: ports,
+  };
+  const resp = await fetch('/api/nse-scripts', {method: 'POST', headers: headers(), body: JSON.stringify(body)});
+  if (resp.ok) {
+    const data = await resp.json();
+    warnEl.textContent = data.warning === 'non_safe_script' ? '{{ t("configuration.allowlist_warning_non_safe") }}' : '';
+    document.getElementById('allowlist-form').reset();
+    loadAllowlist();
+  } else {
+    const data = await resp.json().catch(() => ({}));
+    warnEl.textContent = JSON.stringify((data.error && data.error.fields) || data.error || 'Failed.');
+  }
+  return false;
+}
+
+async function importNmapScripts() {
+  const resultEl = document.getElementById('allowlist-import-result');
+  resultEl.textContent = '{{ t("configuration.allowlist_importing") }}';
+  resultEl.style.color = '';
+  const resp = await fetch('/api/nse-scripts/import', {method: 'POST', headers: headers()});
+  if (resp.ok) {
+    const data = await resp.json();
+    resultEl.style.color = 'var(--color-success)';
+    resultEl.textContent =
+      `{{ t("configuration.allowlist_import_result") }}`
+        .replace('{created}', data.created)
+        .replace('{skipped}', data.skipped)
+        .replace('{total}', data.total_in_catalog);
+    loadAllowlist();
+  } else {
+    const data = await resp.json().catch(() => ({}));
+    resultEl.style.color = 'var(--color-danger)';
+    resultEl.textContent = (data.error && data.error.message) || 'Could not import scripts.';
+  }
+}
+
+loadUsers();
+loadSecuritySettings();
+loadAllowlist();
+{% endif %}
+</script>
+{% endblock %}

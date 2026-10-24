@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}{{ t('scan_config.title') }} — {{ t('app.brand') }}{% endblock %}
+{% block content %}
+<h1>{{ t('scan_config.title') }}</h1>
+
+{# Feature 009 (course-corrected): the Scan window is the full, editable scan
+   configuration — the same fields as the profile editor. Opened from a profile
+   it pre-fills from it and runs linked to it (sending only the changed fields,
+   so an unchanged run stays cache-eligible); opened as a custom scan (no
+   profile) it runs ad-hoc without ever creating a profile. "Save as profile"
+   persists the current fields as a new profile. Nothing here mutates an
+   existing profile. #}
+<form id="scan-form" onsubmit="return startScan(event)">
+  <div class="card">
+    <div style="margin-bottom:0.75rem;">
+      <label for="name">{{ t('scan_config.name') }}</label><br>
+      <input id="name" style="width:100%" value="{{ profile.name }}" placeholder="{{ t('scan_config.name_placeholder') }}">
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+      {{ m.field_label(t('editor.target_scope'), 'target_scope') }}<br>
+      <input id="target_scope" style="width:100%"
+             value="{{ (prefill_targets if prefill_targets is not none else profile.target_scope) | join(', ') }}"
+             placeholder="10.10.0.0/24, 10.10.1.1-10.10.1.50">
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+      {{ m.field_label(t('editor.port_spec'), 'port_spec') }}<br>
+      <textarea id="port_spec" rows="2" placeholder="5060-5062">{{ profile.port_spec }}</textarea>
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+      {{ m.field_label(t('editor.timing'), 'timing') }}<br>
+      <select id="timing">
+        {% for tpl in ['T0','T1','T2','T3','T4','T5'] %}
+        <option value="{{ tpl }}" {{ 'selected' if profile.scan_params.timing == tpl else '' }}>{{ tpl }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+      <label><input type="checkbox" id="field_open_ports"
+        {{ 'checked' if 'open_ports' in profile.extracted_fields else '' }}> {{ t('editor.field_open_ports') }}</label>
+      {{ m.help_icon('field_open_ports') }}<br>
+      <label><input type="checkbox" id="field_service_version"
+        {{ 'checked' if 'service_version' in profile.extracted_fields else '' }}> {{ t('editor.field_service_version') }}</label>
+      {{ m.help_icon('field_service_version') }}
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+      <label><input type="checkbox" id="compliance_version"
+        {{ 'checked' if profile.compliance_settings.version_validity else '' }}> {{ t('editor.compliance_version') }}</label>
+      {{ m.help_icon('compliance_version') }}
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+      {{ m.field_label(t('editor.nse_scripts'), 'nse_scripts') }}<br>
+      <div id="nse-scripts-list" class="checkbox-list"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <strong>{{ t('editor.command_preview') }}</strong>
+    <pre id="command-preview" class="cmd-preview">nmap …</pre>
+  </div>
+
+  <div id="scan-error" class="form-error"></div>
+  <p id="target-required-hint" class="disabled-hint" style="display:none;">{{ t('scan_config.target_required_hint') }}</p>
+  <button class="btn btn-primary" type="submit" id="start-scan-btn">{{ t('scan_config.start_scan') }}</button>
+  <button class="btn" type="button" id="save-profile-btn" onclick="saveAsProfile()">{{ t('scan_config.save_as_profile') }}</button>
+  <a class="btn" href="/profiles">{{ t('editor.cancel') }}</a>
+</form>
+
+<script>
+const PROFILE = {{ profile | tojson }};
+const PROFILE_ID = {{ (profile.id if profile.id else None) | tojson }};
+
+function csrfToken() {
+  return document.cookie.split('; ').find(c => c.startsWith('csrf_token='))?.split('=')[1] || '';
+}
+function headers() { return {'Content-Type': 'application/json', 'x-csrf-token': csrfToken()}; }
+
+function readTargets() {
+  return document.getElementById('target_scope').value.split(',').map(s => s.trim()).filter(Boolean);
+}
+function readExtractedFields() {
+  const fields = [];
+  if (document.getElementById('field_open_ports').checked) fields.push('open_ports');
+  if (document.getElementById('field_service_version').checked) fields.push('service_version');
+  return fields;
+}
+function readSelectedScripts() {
+  return Array.from(document.querySelectorAll('.nse-checkbox:checked')).map(el => el.value);
+}
+
+// The full effective config — used for the command preview, the ad-hoc launch,
+// and Save as Profile.
+function readForm() {
+  return {
+    name: document.getElementById('name').value,
+    target_scope: readTargets(),
+    port_spec: document.getElementById('port_spec').value.replace(/\s+/g, ''),
+    scan_params: { timing: document.getElementById('timing').value },
+    extracted_fields: readExtractedFields(),
+    selected_scripts: readSelectedScripts(),
+    compliance_settings: { version_validity: document.getElementById('compliance_version').checked },
+    cache_freshness_seconds: PROFILE.cache_freshness_seconds,
+  };
+}
+
+function arraysEqual(a, b) {
+  if (a.length !== b.length) return false;
+  const sa = [...a].sort(), sb = [...b].sort();
+  for (let i = 0; i < sa.length; i++) if (sa[i] !== sb[i]) return false;
+  return true;
+}
+
+// For a profile-linked launch, send only the fields changed from the saved
+// profile; an unchanged targeted run sends {} and stays cache-eligible (R2).
+function buildOverrides() {
+  const body = {};
+  const f = readForm();
+  if (!arraysEqual(f.target_scope, PROFILE.target_scope || [])) body.target_scope = f.target_scope;
+  if (f.port_spec !== (PROFILE.port_spec || '')) body.port_spec = f.port_spec;
+  if (f.scan_params.timing !== (PROFILE.scan_params || {}).timing) body.scan_params = f.scan_params;
+  if (!arraysEqual(f.extracted_fields, PROFILE.extracted_fields || [])) body.extracted_fields = f.extracted_fields;
+  if (!arraysEqual(f.selected_scripts, PROFILE.selected_scripts || [])) body.selected_scripts = f.selected_scripts;
+  if ((f.compliance_settings.version_validity || false) !== ((PROFILE.compliance_settings || {}).version_validity || false)) {
+    body.compliance_settings = f.compliance_settings;
+  }
+  return body;
+}
+
+async function updatePreview() {
+  const resp = await fetch('/api/profiles/preview-command', {method: 'POST', headers: headers(), body: JSON.stringify(readForm())});
+  const pre = document.getElementById('command-preview');
+  pre.textContent = resp.ok ? (await resp.json()).display : 'nmap …';
+}
+
+// FR-016: Start Scan is disabled until a target is present.
+function updateStartState() {
+  const hasTarget = readTargets().length > 0;
+  document.getElementById('start-scan-btn').disabled = !hasTarget;
+  document.getElementById('target-required-hint').style.display = hasTarget ? 'none' : '';
+}
+
+async function loadNseScripts() {
+  const resp = await fetch('/api/nse-scripts', {headers: {'Accept': 'application/json'}});
+  const container = document.getElementById('nse-scripts-list');
+  container.innerHTML = '';
+  if (!resp.ok) return;
+  const scripts = await resp.json();
+  const selected = PROFILE.selected_scripts || [];
+  for (const s of scripts) {
+    const label = document.createElement('label');
+    label.className = 'checkbox-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'nse-checkbox';
+    cb.value = s.script_id;
+    cb.checked = selected.includes(s.script_id);
+    cb.disabled = !s.enabled;
+    cb.addEventListener('change', updatePreview);
+    label.appendChild(cb);
+    const text = s.script_id + (s.description ? ' — ' + s.description : '') +
+      (s.enabled ? '' : ' (' + '{{ t("configuration.status_disabled") }}' + ')');
+    label.appendChild(document.createTextNode(' ' + text));
+    container.appendChild(label);
+  }
+  updatePreview();
+}
+
+for (const id of ['name', 'target_scope', 'port_spec', 'timing', 'field_open_ports', 'field_service_version', 'compliance_version']) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => { updatePreview(); updateStartState(); });
+  el.addEventListener('change', () => { updatePreview(); updateStartState(); });
+}
+
+function showError(data, fallback) {
+  document.getElementById('scan-error').textContent =
+    JSON.stringify((data.error && data.error.fields) || (data.error && data.error.message) || fallback);
+}
+
+async function startScan(e) {
+  e.preventDefault();
+  if (readTargets().length === 0) { updateStartState(); return false; }
+  let url, body;
+  if (PROFILE_ID) {
+    url = `/api/profiles/${PROFILE_ID}/runs`;
+    body = buildOverrides();
+  } else {
+    url = '/api/runs/ad-hoc';
+    body = readForm();
+  }
+  const resp = await fetch(url, {method: 'POST', headers: headers(), body: JSON.stringify(body)});
+  const data = await resp.json().catch(() => ({}));
+  if ((resp.status === 202 || resp.status === 200) && data.run_id) {
+    window.location.href = `/runs/${data.run_id}`;
+  } else {
+    showError(data, 'Could not start scan.');
+  }
+  return false;
+}
+
+async function saveAsProfile() {
+  const body = readForm();
+  if (!body.name) {
+    document.getElementById('scan-error').textContent = '{{ t("scan_config.name_required") }}';
+    document.getElementById('name').focus();
+    return;
+  }
+  const resp = await fetch('/api/profiles', {method: 'POST', headers: headers(), body: JSON.stringify(body)});
+  const data = await resp.json().catch(() => ({}));
+  if (resp.ok) {
+    window.location.href = '/profiles';
+  } else {
+    showError(data, 'Could not save profile.');
+  }
+}
+
+loadNseScripts();
+updateStartState();
+updatePreview();
+</script>
+{% endblock %}

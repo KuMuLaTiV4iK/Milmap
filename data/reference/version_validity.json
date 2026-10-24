@@ -1,0 +1,14 @@
+[
+  {
+    "vendor": "Asterisk",
+    "type": "ucm",
+    "min_version": "20.0",
+    "note": "Below the currently maintained LTS branch (20.x); upgrade."
+  },
+  {
+    "vendor": "OpenSSH",
+    "type": "router",
+    "min_version": "9.0",
+    "note": "Below the currently maintained release; upgrade to 9.x."
+  }
+]

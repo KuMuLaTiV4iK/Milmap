@@ -1,0 +1,29 @@
+{# Ambient HUD decoration (feature 010). Included exactly once from base.html.
+   Purely decorative: aria-hidden, pointer-events:none, behind all content.
+   Grid/scan-lines/vignette come from CSS gradients; hex, ticks and bar glyphs
+   are inline text/SVG — no data: or external images (CSP img-src 'self'). #}
+<div class="hud-decoration" aria-hidden="true">
+  <div class="hud-scanlines"></div>
+  <div class="hud-telemetry hud-telemetry--left">0x4D4C4D50 · 7F 3A 91 C2
+0x00FF21A8 · B4 0E 5D 77
+0x9C31E0AB · 12 F8 A6 3C
+0x2A7710D4 · 6E C9 04 BB
+0xE5190F63 · 80 2D D7 4A
+0x31B8C47E · F1 53 9A 06</div>
+  <div class="hud-telemetry hud-telemetry--right">A7 19 4E D2 · 0x6B02F9C1
+3C 8B 70 E5 · 0x1D4A88F0
+F6 02 B9 5A · 0xC7E3510B
+49 D0 1C 87 · 0x8A5F2E94
+0E 6A F3 B1 · 0x52C0D7A3
+D8 37 A4 2F · 0xFB91640E</div>
+  <svg class="hud-tick hud-tick--tl" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2" focusable="false"><path d="M1 35V1h34M1 10h8M10 1v8"/></svg>
+  <svg class="hud-tick hud-tick--tr" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2" focusable="false"><path d="M35 35V1H1M35 10h-8M26 1v8"/></svg>
+  <svg class="hud-tick hud-tick--bl" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2" focusable="false"><path d="M1 1v34h34M1 26h8M10 35v-8"/></svg>
+  <svg class="hud-tick hud-tick--br" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2" focusable="false"><path d="M35 1v34H1M35 26h-8M26 35v-8"/></svg>
+  <svg class="hud-bars" viewBox="0 0 120 24" fill="currentColor" focusable="false">
+    <rect x="0" y="6" width="8" height="18"/><rect x="12" y="2" width="8" height="22"/><rect x="24" y="10" width="8" height="14"/>
+    <rect x="36" y="4" width="8" height="20"/><rect x="48" y="12" width="8" height="12"/><rect x="60" y="0" width="8" height="24"/>
+    <rect x="72" y="8" width="8" height="16"/><rect x="84" y="3" width="8" height="21"/><rect x="96" y="11" width="8" height="13"/>
+    <rect x="108" y="5" width="8" height="19"/>
+  </svg>
+</div>

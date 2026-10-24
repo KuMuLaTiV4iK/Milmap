@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ t('credential_tool.result_title') }}{% if run %} {{ run.id[:8] }}{% endif %} — {{ t('app.brand') }}{% endblock %}
+{% block content %}
+<h1>{{ t('credential_tool.result_title') }}</h1>
+<p><a class="btn" href="/tools/credential-check">{{ t('credential_tool.result_back') }}</a></p>
+
+{% if not run %}
+<p class="form-error">{{ t('run.failed') }}</p>
+{% else %}
+<p>
+  {{ t('credential_tool.service') }}: <strong>{{ run.service }}</strong> ·
+  {{ t('run.status') }}:
+  <span class="badge {{ 'badge-compliant' if run.status == 'completed' else ('badge-failed' if run.status == 'failed' else ('badge-running' if run.status == 'running' else 'badge-unknown')) }}">{{ run.status }}</span>
+  {% if run.attempt_ceiling is not none %}· {{ t('credential_tool.result_ceiling') }}: {{ run.attempt_ceiling }}{% endif %}
+</p>
+<p>{{ t('run.started') }}: {{ run.started_at | localts }}{% if run.finished_at %} · {{ t('run.finished') }}: {{ run.finished_at | localts }}{% endif %}</p>
+
+{% if run.status == 'running' %}
+<p><em>{{ t('credential_tool.result_running') }}</em></p>
+<script>setTimeout(() => location.reload(), 3000);</script>
+{% endif %}
+
+{% if run.status == 'failed' %}
+<p class="form-error">{{ t('credential_tool.result_failed') }}: {{ run.error_detail }}</p>
+{% endif %}
+
+{% for r in results %}
+<div class="card">
+  <h2>{{ r.address }}
+    {% if r.matched_username %}
+    <span class="badge badge-non-compliant">{{ t('credential_tool.result_matched_as') }}: {{ r.matched_username }}</span>
+    {% endif %}
+  </h2>
+  <p>{{ t('credential_tool.result_attempts') }}: {{ r.attempts_made }}</p>
+  {% if r.attempts %}
+  <div class="table-scroll">
+  <table>
+    <thead><tr>
+      <th>{{ t('credential_tool.result_username') }}</th>
+      <th>{{ t('credential_tool.result_response') }}</th>
+      <th>{{ t('credential_tool.result_matched') }}</th>
+    </tr></thead>
+    <tbody>
+      {% for a in r.attempts %}
+      <tr class="{{ 'row-non-compliant' if a.matched else '' }}">
+        <td>{{ a.username }}</td>
+        <td>{% if a.status is not none %}<code>{{ a.status }}</code> {% endif %}{{ a.excerpt or '—' }}</td>
+        <td>{{ t('history.yes') if a.matched else t('history.no') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p>{{ t('credential_tool.result_no_attempts') }}</p>
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

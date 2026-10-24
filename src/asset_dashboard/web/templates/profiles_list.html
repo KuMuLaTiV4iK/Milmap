@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros.html" import profile_row %}
+{% block title %}{{ t('profiles.title') }} — {{ t('app.brand') }}{% endblock %}
+{% block content %}
+<h1>{{ t('profiles.title') }}</h1>
+<p><a class="btn btn-primary" href="/profiles/new">{{ t('profiles.new') }}</a></p>
+<div id="profiles-error" class="error-region" role="alert" style="display:none;"></div>
+<div class="hud-panel"><div class="table-scroll">
+<table>
+  <thead>
+    <tr><th>{{ t('profiles.col_name') }}</th><th>{{ t('profiles.col_target') }}</th><th>{{ t('profiles.col_ports') }}</th><th></th></tr>
+  </thead>
+  <tbody id="profiles-tbody">
+    {% for p in profiles %}
+    {{ profile_row(p) }}
+    {% else %}
+    <tr><td colspan="4">{{ t('profiles.none') }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div></div>
+<script>
+function profilesListError(evt) {
+  const box = document.getElementById('profiles-error');
+  let message = 'Could not complete the action.';
+  try {
+    const data = JSON.parse(evt.detail.xhr.responseText);
+    message = (data.error && data.error.message) || message;
+  } catch (e) { /* non-JSON error body */ }
+  box.textContent = message;
+  box.style.display = 'block';
+}
+</script>
+{% endblock %}

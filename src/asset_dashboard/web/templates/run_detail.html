@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}{{ t('run.title') }} {{ run.id[:8] }} — {{ t('app.brand') }}{% endblock %}
+{% block content %}
+<h1>{{ t('run.title') }}</h1>
+<p>
+  {{ t('run.profile') }}: <strong>{{ run.profile_snapshot.name }}</strong> ·
+  {{ t('run.status') }}: <span class="badge {{ 'badge-compliant' if run.status == 'completed' else ('badge-failed' if run.status in ['failed'] else ('badge-running' if run.status == 'running' else 'badge-unknown')) }}">{{ run.status }}</span>
+  {% if run.served_from_cache %}<span class="badge badge-unknown">cache ({{ run.source_run_id }})</span>{% endif %}
+</p>
+<p>{{ t('run.started') }}: {{ run.started_at | localts }} {% if run.finished_at %}· {{ t('run.finished') }}: {{ run.finished_at | localts }}{% endif %}</p>
+
+{% if run.profile_id and run.status in ['completed', 'cancelled'] %}
+<p><a class="btn" href="/schedules?from_run={{ run.id }}">{{ t('history.schedule_this_scan') }}</a></p>
+{% endif %}
+
+{% if run.status == 'running' %}
+<p>
+  <em>{{ t('run.in_progress') }}</em>
+  <button class="btn" hx-post="/api/runs/{{ run.id }}/cancel" hx-swap="none" onclick="location.reload()">{{ t('run.cancel') }}</button>
+</p>
+<script>setTimeout(() => location.reload(), 3000);</script>
+{% endif %}
+
+{% if run.status == 'failed' %}
+<p class="form-error">{{ t('run.failed') }}: {{ run.error_detail }}</p>
+{% endif %}
+
+{% if run.status in ['completed', 'cancelled'] and results|length == 0 %}
+<p>{{ t('run.no_hosts') }}</p>
+{% endif %}
+
+{% if results %}
+{# Feature 009: host-selection toolbar. Ticking rows (or the auto-select /
+   select-all controls) builds an ephemeral, de-duplicated address set that the
+   pivot actions read; nothing is persisted (FR-005). #}
+<div class="selection-toolbar" role="group" aria-label="{{ t('run.selection_toolbar') }}">
+  <span class="selected-count">{{ t('run.selected_count') }}: <strong id="selected-count">0</strong></span>
+  <button type="button" class="btn" id="select-all-btn" onclick="selectAllRows(true)">{{ t('run.select_all') }}</button>
+  <button type="button" class="btn" id="clear-selection-btn" onclick="selectAllRows(false)">{{ t('run.clear_selection') }}</button>
+  <button type="button" class="btn" id="select-invalid-version-btn" onclick="selectInvalidVersionHosts()" title="{{ t('run.select_invalid_version_hint') }}">{{ t('run.select_invalid_version') }}</button>
+  <button type="button" class="btn" id="cred-pivot-btn" onclick="pivotToCredentialCheck()" disabled>{{ t('run.check_credentials_selected') }}</button>
+  <select id="scan-profile-picker" aria-label="{{ t('run.scan_selected_with_profile') }}" onchange="pivotToScan()">
+    <option value="">{{ t('run.scan_selected_with_profile') }}</option>
+    <option value="__custom__">{{ t('scan_config.custom_scan') }}</option>
+  </select>
+  <button type="button" class="btn" id="scan-pivot-btn" onclick="pivotToScan()" disabled>{{ t('run.scan_selected_go') }}</button>
+</div>
+<div class="hud-panel"><div class="table-scroll">
+<table>
+  <thead><tr><th class="row-checkbox-col"><input type="checkbox" id="select-all-checkbox" onchange="selectAllRows(this.checked)" aria-label="{{ t('run.select_all') }}"></th><th>{{ t('run.col_host') }}</th><th>{{ t('run.col_ports') }}</th><th>{{ t('run.col_version') }}</th><th>{{ t('run.col_compliance') }}</th><th>{{ t('run.col_nse') }}</th></tr></thead>
+  <tbody>
+    {% for r in results %}
+    {% set pv = port_row_view(run.summary.ports_in_results or 0, r.open_ports) %}
+    {% set non_compliant = r.findings | selectattr('result', 'equalto', 'non_compliant') | list %}
+    {% set vv = r.findings | selectattr('control', 'equalto', 'version_validity') | map(attribute='result') | first %}
+    <tr class="{{ 'row-non-compliant' if non_compliant else '' }}"{% if vv %} data-version-result="{{ vv }}"{% endif %}>
+      <td class="row-checkbox-col"><input type="checkbox" class="host-checkbox" value="{{ r.address }}" onchange="updateSelectedCount()" aria-label="{{ r.address }}"></td>
+      <td>{{ r.address }}</td>
+      <td>
+        {% if pv.all_closed %}
+        {{ t('run.ports_all_closed') }}
+        {% else %}
+        <ul class="port-list">
+        {% for p in pv.ports %}<li>{{ p.port }}/{{ p.protocol }} {{ p.state if pv.mode == 'small' else '' }} ({{ p.service or '?' }})</li>{% endfor %}
+        </ul>
+        {% endif %}
+      </td>
+      <td>{{ r.extracted.service_version or '—' }}</td>
+      <td>
+        {% for f in r.findings %}
+        <span class="badge badge-{{ f.result.replace('_', '-') }}">{{ f.control }}: {{ f.result }}</span>
+        {% if f.result == 'non_compliant' %}
+        <div>
+          {% if f.detail.expected_valid %}<div>{{ t('run.expected_valid') }}: {{ f.detail.expected_valid }}</div>{% endif %}
+          {% if f.detail.note %}<div>{{ t('run.remediation_note') }}: {{ f.detail.note }}</div>{% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </td>
+      <td>
+        {% if r.extracted.nse %}
+        {% for script_id, output in r.extracted.nse.items() %}
+        <div class="nse-output"><code>{{ script_id }}</code>: {{ output }}</div>
+        {% endfor %}
+        {% else %}
+        <span class="link-unavailable">—</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div></div>
+
+<script>
+// Feature 009 — ephemeral host selection on the results table.
+function hostCheckboxes() {
+  return Array.from(document.querySelectorAll('.host-checkbox'));
+}
+
+// The de-duplicated set of ticked host addresses; the pivot actions read this.
+function selectedAddresses() {
+  const seen = [];
+  for (const cb of hostCheckboxes()) {
+    if (cb.checked && !seen.includes(cb.value)) seen.push(cb.value);
+  }
+  return seen;
+}
+
+function updateSelectedCount() {
+  const boxes = hostCheckboxes();
+  const count = boxes.filter(cb => cb.checked).length;
+  const countEl = document.getElementById('selected-count');
+  if (countEl) countEl.textContent = count;
+  const selectAll = document.getElementById('select-all-checkbox');
+  if (selectAll) {
+    selectAll.checked = count > 0 && count === boxes.length;
+    selectAll.indeterminate = count > 0 && count < boxes.length;
+  }
+  if (typeof updateSelectionActions === 'function') updateSelectionActions(count);
+}
+
+function selectAllRows(checked) {
+  for (const cb of hostCheckboxes()) cb.checked = checked;
+  updateSelectedCount();
+}
+
+// Enable/disable the pivot actions as the selection count changes (FR-002).
+function updateSelectionActions(count) {
+  const credBtn = document.getElementById('cred-pivot-btn');
+  if (credBtn) credBtn.disabled = count === 0;
+  const scanBtn = document.getElementById('scan-pivot-btn');
+  if (scanBtn) scanBtn.disabled = count === 0;
+}
+
+// US2: pivot the selected hosts into the credential tool, pre-filled.
+function pivotToCredentialCheck() {
+  const addresses = selectedAddresses();
+  if (addresses.length === 0) return;
+  window.location.href = `/tools/credential-check?targets=${encodeURIComponent(addresses.join(','))}`;
+}
+
+// US3: pivot the selected hosts into the Scan Configuration page of a chosen
+// profile, pre-filled with those hosts as the target (FR-010, FR-011).
+function pivotToScan() {
+  const addresses = selectedAddresses();
+  const choice = document.getElementById('scan-profile-picker').value;
+  if (!choice) return;
+  const query = addresses.length ? `?targets=${encodeURIComponent(addresses.join(','))}` : '';
+  // "Довільне сканування" → the custom (ad-hoc) scan page, with any selected
+  // hosts pre-filled; no profile required.
+  if (choice === '__custom__') {
+    window.location.href = `/scan${query}`;
+    return;
+  }
+  if (addresses.length === 0) return;
+  window.location.href = `/profiles/${choice}/scan${query}`;
+}
+
+// Populate the "Scan selected with profile…" picker from the profile list.
+async function loadScanProfilePicker() {
+  const picker = document.getElementById('scan-profile-picker');
+  if (!picker) return;
+  const resp = await fetch('/api/profiles', {headers: {'Accept': 'application/json'}});
+  if (!resp.ok) return;
+  for (const p of await resp.json()) {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    picker.appendChild(opt);
+  }
+}
+
+// US4: one click adds every non_compliant version-validity host to the current
+// selection (union, FR-003). `unknown` and `compliant` are never auto-selected.
+function selectInvalidVersionHosts() {
+  for (const cb of hostCheckboxes()) {
+    const row = cb.closest('tr');
+    if (row && row.getAttribute('data-version-result') === 'non_compliant') cb.checked = true;
+  }
+  updateSelectedCount();
+}
+
+// FR-004: the action is disabled when the run was not evaluated for version
+// validity (no annotated rows at all).
+function initInvalidVersionButton() {
+  const btn = document.getElementById('select-invalid-version-btn');
+  if (!btn) return;
+  const evaluated = document.querySelector('tr[data-version-result]') !== null;
+  btn.disabled = !evaluated;
+  if (!evaluated) btn.title = '{{ t("run.select_invalid_version_disabled") }}';
+}
+
+loadScanProfilePicker();
+initInvalidVersionButton();
+updateSelectedCount();
+</script>
+{% endif %}
+{% endblock %}

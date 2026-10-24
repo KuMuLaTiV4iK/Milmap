@@ -1,0 +1,475 @@
+/* Milmap — tactical-HUD theme (feature 010). Amber on near-black, single
+   dark theme, no toggle. Deliberately self-contained: no external
+   font/CSS/image fetches, so the page renders correctly on an air-gapped
+   host. The CSP is fixed (img-src 'self'), so no data: image URIs are used —
+   the ambient decoration is CSS gradients plus inline SVG/text in the DOM.
+
+   Section order: 1 Tokens · 2 @font-face · 3 Base/reset · 4 Components ·
+   5 Decoration. */
+
+/* ==========================================================================
+   1. Tokens
+   ========================================================================== */
+:root {
+  --color-bg: #07090c;
+  --color-surface: #0e1217;
+  --color-surface-raised: #151b22;
+  --color-border: #2b3039;
+  --color-text: #e8e4da;
+  --color-text-muted: #a49c8b;
+
+  /* Amber: --color-accent for large text / UI (>= 3:1), --color-accent-text
+     for small accent text (>= 4.5:1), --color-accent-contrast on amber fills. */
+  --color-accent: #ecde10;
+  --color-accent-text: #fcb82e;
+  --color-accent-contrast: #1a1100;
+
+  --color-danger: #ff6a6e;
+  --color-warning: #ffd84d;
+  --color-success: #4ddc96;
+  --color-running: #62c8ff;
+
+  --hud-bracket: #ffb020;
+  --hud-grid: rgba(255, 176, 32, 0.9);
+  --hud-scanline: rgba(255, 255, 255, 0.9);
+  --hud-decoration-opacity: 0.07;
+  --focus-ring: 2px solid #ffc85a;
+
+  --font-display: 'Volja', var(--font-sans);
+  --font-sans: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, Menlo, monospace;
+}
+
+/* ==========================================================================
+   2. @font-face (local only — /static/fonts/*)
+   ========================================================================== */
+@font-face {
+  font-family: 'Volja';
+  src: url('/static/fonts/Volja-Regular.woff2') format('woff2'),
+       url('/static/fonts/volja-regular_w.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Volja';
+  src: url('/static/fonts/Volja-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ==========================================================================
+   3. Base / reset
+   ========================================================================== */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+a { color: var(--color-accent-text); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+h1, h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: var(--color-accent);
+}
+h1 { font-size: 1.5rem; margin: 0 0 1rem; }
+h2 { font-size: 1.15rem; margin: 0 0 0.75rem; }
+
+:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+
+/* ==========================================================================
+   4. Components
+   ========================================================================== */
+
+/* --- App shell (position/z-index keep it above .hud-decoration) ---------- */
+.app-header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 1.25rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-accent);
+  box-shadow: 0 1px 0 rgba(255, 176, 32, 0.25), 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+.app-header .brand {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-display);
+  color: var(--color-accent);
+  font-weight: 800;
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: 0.06em;
+}
+.app-header .brand svg { width: 1em; height: 1em; margin-right: 0.3em; flex: none; }
+
+.app-header nav { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.6rem; align-self: stretch; }
+.app-header nav a {
+  position: relative;
+  z-index: 1;
+  color: var(--color-text-muted);
+  margin: 0;
+  padding: 0.55rem 0.95rem;
+  text-transform: uppercase;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+}
+.app-header nav a:hover, .app-header nav a.active { color: var(--color-accent-text); text-decoration: none; }
+.app-header nav .btn { font-size: 1rem; padding: 0.55rem 1rem; position: relative; z-index: 1; }
+.app-header .admin-only-tag { position: relative; z-index: 1; }
+
+/* Yellow frame around the current tab; it slides from the previous tab. */
+.nav-frame {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border: 2px solid var(--color-accent);
+  box-shadow: 0 0 10px rgba(255, 176, 32, 0.35);
+  pointer-events: none;
+  opacity: 0;
+}
+.nav-frame.ready { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  .nav-frame.animate { transition: left 0.35s ease, top 0.35s ease, width 0.35s ease, height 0.35s ease; }
+}
+
+.container { position: relative; z-index: 1; padding: 1.25rem; min-height: auto; margin: 0 auto; }
+
+.admin-only-tag {
+  font-size: 0.72rem;
+  color: var(--color-accent-text);
+  border: 1px solid var(--color-accent);
+  padding: 0 0.3rem;
+  margin-left: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Navigation dropdown: "Конфігурація" → Акаунт / Бібліотека. */
+.nav-dropdown { position: relative; display: inline-block; }
+.nav-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  min-width: 11rem;
+  margin-top: 0.3rem;
+  padding: 0.3rem 0;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-accent);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+}
+.nav-dropdown.open .nav-dropdown-menu,
+.nav-dropdown:hover .nav-dropdown-menu,
+.nav-dropdown:focus-within .nav-dropdown-menu { display: block; }
+.nav-dropdown-menu a {
+  display: block;
+  margin: 0;
+  padding: 0.4rem 0.9rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  border-bottom: 0;
+}
+.nav-dropdown-menu a:hover { background: var(--color-surface); color: var(--color-accent-text); text-decoration: none; }
+
+/* --- HUD panel (.card is folded in: existing consumers get the same frame).
+   Corner brackets are drawn with ::before/::after — never clip-path + border
+   on one element (research R4). ---------------------------------------- */
+.hud-panel, .card {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  min-width: 0;
+}
+.hud-panel::before, .card::before,
+.hud-panel::after, .card::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  border: 0 solid var(--hud-bracket);
+}
+.hud-panel::before, .card::before { top: -1px; left: -1px; border-top-width: 2px; border-left-width: 2px; }
+.hud-panel::after, .card::after { bottom: -1px; right: -1px; border-bottom-width: 2px; border-right-width: 2px; }
+
+/* Optional angled silhouette: clip on this borderless frame only. */
+.hud-panel--notched {
+  border-color: transparent;
+  background: var(--color-surface);
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+}
+
+/* --- Tables ---------------------------------------------------------------- */
+.table-scroll { width: 100%; overflow-x: auto; }
+
+table { width: 100%; border-collapse: collapse; background: transparent; }
+th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); vertical-align: top; }
+th {
+  color: var(--color-accent-text);
+  font-weight: 600;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--color-accent);
+  background: rgba(255, 176, 32, 0.05);
+}
+tbody tr:hover { background: rgba(255, 176, 32, 0.06); }
+
+.sortable-th { cursor: pointer; user-select: none; white-space: nowrap; }
+.sortable-th:hover { color: var(--color-text); }
+.sortable-th::after { content: ''; display: inline-block; width: 0.6em; margin-left: 0.25em; }
+.sortable-th.sort-asc::after { content: '▲'; }
+.sortable-th.sort-desc::after { content: '▼'; }
+
+.table-search { width: 100%; max-width: 20rem; margin-bottom: 0.6rem; }
+
+.row-checkbox-col { width: 1.5rem; text-align: center; }
+.row-checkbox-col input[type="checkbox"] { cursor: pointer; }
+
+/* Ports rendered one per line in the results table. */
+.port-list { margin: 0; padding: 0; list-style: none; font-family: var(--font-mono); }
+.port-list li { padding: 0.05rem 0; white-space: nowrap; }
+
+/* Non-compliant: tint + marker + weight, so it reads without color too. */
+.row-non-compliant {
+  background: rgba(255, 106, 110, 0.09);
+  box-shadow: inset 4px 0 0 var(--color-danger);
+  font-weight: 600;
+}
+.row-non-compliant td:first-child::before { content: '⚠ '; color: var(--color-danger); }
+.row-non-compliant.row-checkbox-first td:first-child::before,
+.row-non-compliant td.row-checkbox-col::before { content: none; }
+
+/* --- Status badges: always text + color --------------------------------- */
+.badge {
+  display: inline-block;
+  padding: 0.12rem 0.55rem;
+  border: 1px solid currentColor;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.badge-compliant { background: rgba(77, 220, 150, 0.12); color: var(--color-success); }
+.badge-non-compliant { background: rgba(255, 106, 110, 0.14); color: var(--color-danger); font-weight: 800; }
+.badge-non-compliant::before { content: '▲ '; }
+.badge-unknown, .badge-inconclusive { background: rgba(255, 216, 77, 0.12); color: var(--color-warning); border-style: dashed; }
+.badge-running { background: rgba(98, 200, 255, 0.12); color: var(--color-running); }
+.badge-failed { background: rgba(255, 106, 110, 0.14); color: var(--color-danger); font-weight: 800; border-style: double; border-width: 3px; }
+.badge-failed::before { content: '✕ '; }
+
+/* --- Buttons ---------------------------------------------------------------- */
+.btn {
+  display: inline-block;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.btn:hover { border-color: var(--color-accent); color: var(--color-accent-text); text-decoration: none; }
+.btn-primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-accent-contrast); font-weight: 700; }
+.btn-primary:hover { background: var(--color-accent-text); color: var(--color-accent-contrast); }
+.btn-danger { border-color: var(--color-danger); color: var(--color-danger); }
+.btn-danger:hover { background: rgba(255, 106, 110, 0.14); color: var(--color-danger); border-color: var(--color-danger); }
+.btn[disabled], .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn[disabled]:hover, .btn:disabled:hover { border-color: var(--color-border); color: var(--color-text); background: var(--color-surface-raised); }
+.disabled-hint { color: var(--color-text-muted); font-size: 0.82rem; font-style: italic; }
+
+/* --- Form controls ---------------------------------------------------------- */
+input, select, textarea {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 0.4rem 0.6rem;
+  font-family: inherit;
+  max-width: 100%;
+}
+input[type="checkbox"], input[type="radio"] { accent-color: var(--color-accent); }
+input[type="number"], input[type="date"], input[type="time"], input[type="datetime-local"] { color-scheme: dark; }
+input[type="file"] { padding: 0.3rem; }
+input[type="file"]::file-selector-button {
+  background: var(--color-surface);
+  color: var(--color-accent-text);
+  border: 1px solid var(--color-accent);
+  padding: 0.25rem 0.7rem;
+  margin-right: 0.6rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.78rem;
+}
+input:focus, select:focus, textarea:focus { outline: var(--focus-ring); outline-offset: 1px; border-color: var(--color-accent); }
+input::placeholder, textarea::placeholder { color: var(--color-text-muted); opacity: 0.8; }
+
+label { color: var(--color-text-muted); font-size: 0.88rem; }
+.field-label { color: var(--color-text-muted); font-size: 0.88rem; display: inline-flex; align-items: center; gap: 0.3rem; }
+
+/* Dense create/filter rows wrap instead of overflowing. */
+.inline-form-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.6rem 0.9rem; margin-bottom: 0.75rem; }
+.inline-form-row > * { min-width: 0; }
+
+/* Checkbox list: NSE-script selection. */
+.checkbox-list {
+  max-height: 14rem;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  padding: 0.4rem 0.6rem;
+}
+.checkbox-item { display: block; color: var(--color-text); font-size: 0.9rem; padding: 0.2rem 0; }
+.checkbox-item input { margin-right: 0.3rem; }
+.checkbox-item input:disabled + * , .checkbox-item input:disabled { opacity: 0.5; }
+
+.form-error { color: var(--color-danger); font-size: 0.85rem; margin-top: 0.25rem; }
+.link-unavailable { color: var(--color-text-muted); font-style: italic; }
+
+/* Resizable multi-line port-spec field. */
+textarea#port_spec { width: 100%; min-height: 2.6rem; resize: vertical; white-space: pre-wrap; word-break: break-word; }
+
+/* --- Help icon, callout, disclosure ---------------------------------------- */
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent-text);
+  font-size: 0.72rem;
+  cursor: help;
+}
+.help-icon:hover, .help-icon:focus { background: var(--color-accent); color: var(--color-accent-contrast); }
+
+.callout, .prefill-note {
+  background: rgba(255, 176, 32, 0.08);
+  border: 1px solid rgba(255, 176, 32, 0.35);
+  border-left: 4px solid var(--color-accent);
+  padding: 0.55rem 0.8rem;
+  font-size: 0.9rem;
+}
+
+.hud-disclosure { border: 1px solid var(--color-border); padding: 0.4rem 0.8rem; margin: 0.6rem 0; }
+.hud-disclosure > summary {
+  cursor: pointer;
+  color: var(--color-accent-text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.82rem;
+}
+.hud-disclosure[open] > summary { margin-bottom: 0.5rem; }
+
+/* --- Code / tool-output blocks ------------------------------------------- */
+code, pre { font-family: var(--font-mono); background: var(--color-surface-raised); padding: 0.15rem 0.4rem; color: var(--color-text); }
+pre { padding: 0.75rem; overflow-x: auto; border: 1px solid var(--color-border); }
+.cmd-preview { border-left: 3px solid var(--color-accent); color: var(--color-accent-text); white-space: pre-wrap; word-break: break-all; }
+.nse-output { border-left: 3px solid var(--color-running); font-size: 0.85rem; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+
+/* --- Results-page host selection ------------------------------------------ */
+.selection-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+}
+.selection-toolbar .selected-count { color: var(--color-text-muted); font-size: 0.88rem; margin-right: auto; }
+.selection-toolbar .selected-count strong { color: var(--color-text); }
+.selection-toolbar select { max-width: 16rem; }
+
+/* --- Home two-column shell ---------------------------------------------- */
+.home-columns { display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: flex-start; }
+.home-col-left, .home-col-right { flex: 1 1 24rem; min-width: 0; }
+@media (max-width: 900px) {
+  .home-columns { flex-direction: column; flex-wrap: nowrap; }
+  .home-col-left, .home-col-right { flex-basis: auto; width: 100%; }
+}
+
+/* ==========================================================================
+   5. Decoration — one aria-hidden, non-interactive fixed layer behind all
+   content, opacity capped by --hud-decoration-opacity.
+   ========================================================================== */
+.hud-decoration {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: var(--hud-decoration-opacity);
+  background:
+    radial-gradient(ellipse at center, transparent 45%, #000 100%),
+    repeating-linear-gradient(0deg, var(--hud-grid) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(90deg, var(--hud-grid) 0 1px, transparent 1px 48px);
+}
+.hud-decoration .hud-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, var(--hud-scanline) 0 1px, transparent 1px 4px);
+  opacity: 0.35;
+}
+.hud-decoration .hud-telemetry {
+  position: absolute;
+  top: 4.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  line-height: 1.6;
+  color: var(--color-accent);
+  white-space: pre;
+}
+.hud-decoration .hud-telemetry--left { left: 0.5rem; }
+.hud-decoration .hud-telemetry--right { right: 0.5rem; text-align: right; }
+.hud-decoration .hud-tick { position: absolute; width: 36px; height: 36px; color: var(--color-accent); }
+.hud-decoration .hud-tick--tl { top: 0.5rem; left: 0.5rem; }
+.hud-decoration .hud-tick--tr { top: 0.5rem; right: 0.5rem; }
+.hud-decoration .hud-tick--bl { bottom: 0.5rem; left: 0.5rem; }
+.hud-decoration .hud-tick--br { bottom: 0.5rem; right: 0.5rem; }
+.hud-decoration .hud-bars { position: absolute; bottom: 1.5rem; left: 50%; width: 120px; height: 24px; margin-left: -60px; color: var(--color-accent); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .hud-decoration .hud-scanlines { animation: hud-scan 8s linear infinite; }
+  .hud-decoration .hud-bars rect { animation: hud-bar 2.4s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: bottom; }
+  .hud-decoration .hud-bars rect:nth-child(2n) { animation-delay: -0.8s; }
+  .hud-decoration .hud-bars rect:nth-child(3n) { animation-delay: -1.6s; }
+  @keyframes hud-scan { from { transform: translateY(0); } to { transform: translateY(4px); } }
+  @keyframes hud-bar { from { transform: scaleY(0.4); } to { transform: scaleY(1); } }
+}
+
+/* Configuration → account tab: my account (left) and security settings
+   (right) share a row; the users table spans the full width beneath. */
+#config-account { display: grid; grid-template-columns: max-content max-content; justify-content: start; gap: 0 1.25rem; align-items: start; }
+#config-account > .card { order: 0; }
+#config-account > #security-settings-card { order: 1; }
+#config-account > #users-card { order: 2; grid-column: 1 / -1; }
+@media (max-width: 1200px) { #config-account { grid-template-columns: minmax(0, 1fr); } }

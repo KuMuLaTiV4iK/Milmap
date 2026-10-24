@@ -1,0 +1,30 @@
+# Pinned, air-gapped dependency set for asset-dashboard.
+# Install offline from a pre-built local wheelhouse (no PyPI access at install time):
+#
+#   uv pip install --no-index --find-links .\wheelhouse -r requirements.lock
+#
+# To (re)build the wheelhouse on a machine WITH internet access, then transfer
+# the wheelhouse/ directory to the air-gapped host:
+#
+#   uv pip download -r requirements.lock -d wheelhouse
+#
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+jinja2==3.1.4
+sqlalchemy==2.0.35
+alembic==1.13.3
+apscheduler==3.10.4
+argon2-cffi==23.1.0
+pydantic==2.9.2
+pydantic-settings==2.5.2
+python-libnmap==0.7.3
+paramiko==3.5.0
+httpx==0.27.2
+itsdangerous==2.2.0
+python-multipart==0.0.12
+
+# dev/test tooling
+pytest==8.3.3
+pytest-asyncio==0.24.0
+ruff==0.6.9
+black==24.10.0

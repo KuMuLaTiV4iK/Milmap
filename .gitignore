@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+
+# Runtime data — NEVER commit these. data/secret_key signs real session
+# cookies; data/app.sqlite3* is the live database (accounts, runs, audit log).
+data/app.sqlite3
+data/app.sqlite3-shm
+data/app.sqlite3-wal
+data/secret_key
+
+# Pre-migration DB snapshots (data/backup-pre-*/) — local recovery copies of
+# the live database, same sensitivity as data/app.sqlite3* above.
+data/backup-pre-*/
+data/reference/
+
+# V0.7: the pre-shared HMAC key(s) used to verify a version-update bundle's
+# integrity/authenticity — a local secret, provisioned offline on this
+# machine and the staging fetcher, never committed (FR-016a).
+data/version_ingestion_keys.txt
+
+# The offline reference datasets (data/reference/*.json) ARE meant to be
+# committed — they're the locally-maintained source of truth (FR-040).
+
+# Air-gapped install: wheelhouse is rebuilt per-machine from requirements.lock
+# (see requirements.lock header) — never committed, often large/binary.
+wheelhouse/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local-only Claude Code settings (machine-specific permissions); the Spec
+# Kit workflow config itself (.specify/, .claude/skills/) has no secrets and
+# IS meant to be committed — it's how this project's spec-driven flow works.
+.claude/
+.ruff_cache/
+.mypy_cache/
+.coverage
+*.log
+.env
+.env.*
+.specify/
+
+# debug/ holds ad-hoc test fixtures including a private key (server.key) and
+# ad-hoc mock servers — local-only, never committed.
+debug/
+specs/00*
+

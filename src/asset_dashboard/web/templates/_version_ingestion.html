@@ -1,0 +1,219 @@
+{# Admin-only version-ingestion panel (US3, FR-014-FR-021): tracked
+   sources + bundle import preview/apply. Self-contained, namespaced JS
+   (vi*), loads its own data via the admin-only /api/version-ingestion/*
+   endpoints. #}
+<div class="card" id="version-ingestion-card">
+  <h2>{{ t('ingestion.title') }}</h2>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>{{ t('ingestion.col_vendor') }}</th>
+        <th>{{ t('ingestion.col_source_url') }}</th>
+        <th>{{ t('ingestion.col_models') }}</th>
+        <th>{{ t('ingestion.col_last_status') }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="ingestion-sources-tbody">
+      <tr><td colspan="5">{{ t('ingestion.none') }}</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>{{ t('ingestion.add') }}</h3>
+  <form id="ingestion-source-form" onsubmit="return viSaveSource(event)">
+    <input type="text" name="vendor" placeholder="{{ t('ingestion.col_vendor') }}" required>
+    <input type="text" name="source_url" placeholder="{{ t('ingestion.col_source_url') }}" required>
+    <input type="text" name="models" placeholder="{{ t('ingestion.col_models') }} (comma-separated)" required>
+    <button type="submit" class="btn btn-primary">{{ t('ingestion.save') }}</button>
+  </form>
+  <div id="ingestion-source-error" class="form-error" role="alert" style="display:none;"></div>
+
+  <h3>{{ t('ingestion.upload_bundle') }}</h3>
+  <input type="file" id="ingestion-bundle-file" accept="application/json">
+  <select id="ingestion-source-select"></select>
+  <button class="btn" onclick="viPreviewBundle()">{{ t('ingestion.preview') }}</button>
+  <div id="ingestion-preview-result" style="display:none;">
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>{{ t('ingestion.col_change_model') }}</th>
+          <th>{{ t('ingestion.col_change_current') }}</th>
+          <th>{{ t('ingestion.col_change_incoming') }}</th>
+          <th>{{ t('ingestion.col_change_effect') }}</th>
+        </tr>
+      </thead>
+      <tbody id="ingestion-preview-tbody"></tbody>
+    </table>
+    </div>
+    <div id="ingestion-downgrade-warning" class="form-error" style="display:none;">
+      {{ t('ingestion.downgrade_warning') }}
+      <label><input type="checkbox" id="ingestion-confirm-downgrade"> {{ t('ingestion.apply_confirm') }}</label>
+    </div>
+    <button class="btn btn-primary" onclick="viApplyBundle()">{{ t('ingestion.apply') }}</button>
+  </div>
+  <div id="ingestion-error" class="form-error" role="alert" style="display:none;"></div>
+</div>
+
+<script>
+(function () {
+  const NONE_MSG = {{ t('ingestion.none') | tojson }};
+  const EFFECT_LABELS = {
+    create: {{ t('ingestion.effect_create') | tojson }},
+    update: {{ t('ingestion.effect_update') | tojson }},
+    failed: {{ t('ingestion.effect_failed') | tojson }},
+  };
+  const REJECTED_MSG = {{ t('ingestion.rejected') | tojson }};
+  const DELETE_LABEL = {{ t('ingestion.delete') | tojson }};
+
+  let lastBundle = null;
+
+  function viCsrf() {
+    return document.cookie.split('; ').find(c => c.startsWith('csrf_token='))?.split('=')[1] || '';
+  }
+  function viHeaders() {
+    return {'Content-Type': 'application/json', 'x-csrf-token': viCsrf()};
+  }
+
+  async function viLoadSources() {
+    const resp = await fetch('/api/version-ingestion/sources');
+    if (!resp.ok) return;
+    const sources = await resp.json();
+    const tbody = document.getElementById('ingestion-sources-tbody');
+    const select = document.getElementById('ingestion-source-select');
+    tbody.innerHTML = '';
+    select.innerHTML = '';
+    if (!sources.length) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 5;
+      td.textContent = NONE_MSG;
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    }
+    for (const s of sources) {
+      const tr = document.createElement('tr');
+      for (const value of [s.vendor, s.source_url, (s.models || []).join(', '),
+                           s.last_import_status || '—']) {
+        const td = document.createElement('td');
+        td.textContent = value;
+        tr.appendChild(td);
+      }
+      const actions = document.createElement('td');
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn btn-danger';
+      delBtn.textContent = DELETE_LABEL;
+      delBtn.addEventListener('click', () => viDeleteSource(s.id));
+      actions.appendChild(delBtn);
+      tr.appendChild(actions);
+      tbody.appendChild(tr);
+
+      const option = document.createElement('option');
+      option.value = s.id;
+      option.textContent = s.vendor;
+      select.appendChild(option);
+    }
+  }
+
+  async function viDeleteSource(id) {
+    await fetch(`/api/version-ingestion/sources/${id}`, {method: 'DELETE', headers: {'x-csrf-token': viCsrf()}});
+    viLoadSources();
+  }
+
+  window.viSaveSource = async function (evt) {
+    evt.preventDefault();
+    const form = evt.target;
+    const data = new FormData(form);
+    const body = {
+      vendor: data.get('vendor'),
+      source_url: data.get('source_url'),
+      models: data.get('models').split(',').map(s => s.trim()).filter(Boolean),
+    };
+    const resp = await fetch('/api/version-ingestion/sources', {
+      method: 'POST', headers: viHeaders(), body: JSON.stringify(body),
+    });
+    const box = document.getElementById('ingestion-source-error');
+    if (resp.ok) {
+      box.style.display = 'none';
+      form.reset();
+      viLoadSources();
+    } else {
+      const errData = await resp.json().catch(() => ({}));
+      box.textContent = (errData.error && errData.error.message) || 'Could not save source.';
+      box.style.display = 'block';
+    }
+    return false;
+  };
+
+  window.viPreviewBundle = async function () {
+    const fileInput = document.getElementById('ingestion-bundle-file');
+    const errBox = document.getElementById('ingestion-error');
+    errBox.style.display = 'none';
+    if (!fileInput.files.length) return;
+    const text = await fileInput.files[0].text();
+    let bundle;
+    try {
+      bundle = JSON.parse(text);
+    } catch {
+      errBox.textContent = REJECTED_MSG;
+      errBox.style.display = 'block';
+      return;
+    }
+    lastBundle = bundle;
+
+    const resp = await fetch('/api/version-ingestion/import/preview', {
+      method: 'POST', headers: viHeaders(), body: JSON.stringify({bundle}),
+    });
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({}));
+      errBox.textContent = (errData.error && errData.error.message) || REJECTED_MSG;
+      errBox.style.display = 'block';
+      document.getElementById('ingestion-preview-result').style.display = 'none';
+      return;
+    }
+    const review = await resp.json();
+    const tbody = document.getElementById('ingestion-preview-tbody');
+    tbody.innerHTML = '';
+    let anyDowngrade = false;
+    for (const change of review.changes) {
+      const tr = document.createElement('tr');
+      const effect = change.status === 'failed' ? 'failed' : change.effect;
+      for (const value of [change.model || '—', change.current ?? '—',
+                           change.incoming ?? '—', EFFECT_LABELS[effect] || effect]) {
+        const td = document.createElement('td');
+        td.textContent = value;
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+      if (change.downgrade) anyDowngrade = true;
+    }
+    document.getElementById('ingestion-downgrade-warning').style.display = anyDowngrade ? 'block' : 'none';
+    document.getElementById('ingestion-preview-result').style.display = 'block';
+  };
+
+  window.viApplyBundle = async function () {
+    if (!lastBundle) return;
+    const sourceId = document.getElementById('ingestion-source-select').value || null;
+    const confirmDowngrade = document.getElementById('ingestion-confirm-downgrade').checked;
+    const resp = await fetch('/api/version-ingestion/import/apply', {
+      method: 'POST', headers: viHeaders(),
+      body: JSON.stringify({bundle: lastBundle, source_id: sourceId, confirm_downgrade: confirmDowngrade}),
+    });
+    const errBox = document.getElementById('ingestion-error');
+    if (resp.ok) {
+      errBox.style.display = 'none';
+      document.getElementById('ingestion-preview-result').style.display = 'none';
+      lastBundle = null;
+      viLoadSources();
+    } else {
+      const errData = await resp.json().catch(() => ({}));
+      errBox.textContent = (errData.error && errData.error.message) || REJECTED_MSG;
+      errBox.style.display = 'block';
+    }
+  };
+
+  viLoadSources();
+})();
+</script>

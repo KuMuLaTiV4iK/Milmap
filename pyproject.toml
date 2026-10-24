@@ -1,0 +1,61 @@
+[project]
+name = "asset-dashboard"
+version = "0.1.0"
+description = "Internal Asset Inventory & Compliance Management Dashboard (air-gapped)"
+requires-python = ">=3.11"
+readme = "README.md"
+
+dependencies = [
+  "fastapi==0.115.0",
+  "uvicorn[standard]==0.30.6",
+  "pyyaml>=6.0.2",
+  "jinja2==3.1.4",
+  "sqlalchemy==2.0.35",
+  "alembic==1.13.3",
+  "apscheduler==3.10.4",
+  "argon2-cffi==23.1.0",
+  "pydantic==2.9.2",
+  "pydantic-settings==2.5.2",
+  "python-libnmap==0.7.3",
+  "paramiko==3.5.0",
+  "httpx==0.27.2",
+  "itsdangerous==2.2.0",
+  "python-multipart==0.0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.3.3",
+  "pytest-asyncio==0.24.0",
+  "ruff==0.6.9",
+  "black==24.10.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# B008: ruff flags `Depends(...)` in a function-argument default as a risky
+# mutable-default-style pattern, but this is FastAPI's own documented,
+# idiomatic dependency-injection convention (see fastapi.tiangolo.com) —
+# restructuring around it would make the routes less idiomatic, not safer.
+ignore = ["B008"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
