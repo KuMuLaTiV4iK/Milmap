@@ -12,8 +12,7 @@ internet access at install time or at runtime** — a deliberate design constrai
 not a missing feature.
 
 The full product specification is consolidated in
-[`specs/v1.0/spec.md`](specs/v1.0/spec.md); the ratified governing principles are
-in [`.specify/memory/constitution.md`](.specify/memory/constitution.md).
+[`specs/v1.0/spec.md`](specs/v1.0/spec.md)
 
 ---
 
