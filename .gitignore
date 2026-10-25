@@ -57,5 +57,12 @@ Thumbs.db
 # debug/ holds ad-hoc test fixtures including a private key (server.key) and
 # ad-hoc mock servers — local-only, never committed.
 debug/
-specs/00*
+.claude/
+.specify/
+CLAUDE.md
+data/reference/
+
+# Ігнорувати все всередині specs, крім папки v1.0
+specs/*
+!specs/v1.0/
 

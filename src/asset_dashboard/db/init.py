@@ -1,12 +1,25 @@
-"""Create the database schema (idempotent).
+"""Create the database schema (idempotent) — the fresh-install path.
 
 Usage:
     python -m asset_dashboard.db.init
 
-For a from-scratch deployment this is the step before `seed_reference`
-and `auth.create_account` (see quickstart.md). It is safe to re-run —
-`create_all` only creates tables that don't already exist, it never
-drops or alters existing ones (use a real Alembic migration for that).
+This is THE way to create a brand-new `data/app.sqlite3`: `create_all`
+builds the schema straight from the current ORM models — i.e. the final,
+already-correct structure — rather than replaying the Alembic migration
+chain from an empty database. That chain is NOT fresh-install-safe: early
+migrations (e.g. `0002_feature_002`) only ever ALTER tables that already
+exist, on the long-standing assumption that this `db.init` step (not
+`alembic upgrade head`) laid down the feature-001 baseline tables first.
+Running `alembic upgrade head` against a genuinely empty database skips
+that baseline and dies on the first migration that assumes a table like
+`schedules` is already there (`NoSuchTableError`).
+
+Use this for a from-scratch deployment, before `seed_reference` and
+`auth.create_account` (see README's Quick start). For upgrading an
+EXISTING, already-running deployment to a newer version, use `alembic
+upgrade head` instead (see README's "Upgrading an existing database") —
+never run this against a database you intend to keep upgrading via
+Alembic afterward without understanding `_stamp_alembic_head` below.
 
 `create_all` does NOT add new columns to tables that already exist, so
 `_add_missing_columns` performs the tiny additive migrations this project
@@ -14,6 +27,8 @@ needs (feature 008): check `PRAGMA table_info` and `ALTER TABLE … ADD
 COLUMN` for each new nullable/JSON-defaulted column when it is absent.
 """
 from __future__ import annotations
+
+from pathlib import Path
 
 from sqlalchemy import text
 
@@ -58,9 +73,27 @@ def _add_missing_columns() -> None:
                     )
 
 
+def _stamp_alembic_head() -> None:
+    """Record this freshly created schema as already being at Alembic's
+    latest revision. Without this, the database has no `alembic_version`
+    row at all, so a later `alembic upgrade head` (run when upgrading this
+    deployment to a future version) would try to replay the ENTIRE
+    migration chain from scratch against tables that already exist —
+    the mirror image of the NoSuchTableError this module exists to avoid.
+    """
+    from alembic.command import stamp
+    from alembic.config import Config
+
+    project_root = Path(__file__).resolve().parents[3]
+    cfg = Config(str(project_root / "alembic.ini"))
+    cfg.set_main_option("script_location", str(project_root / "migrations"))
+    stamp(cfg, "head")
+
+
 def main() -> None:
     Base.metadata.create_all(engine)
     _add_missing_columns()
+    _stamp_alembic_head()
     print("Database schema is up to date.")
 
 
