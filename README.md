@@ -208,20 +208,31 @@ install the Python dependencies once). For a fully offline/air-gapped install,
 see [Air-gapped installation](#air-gapped-installation) below.
 
 ```powershell
+# 0. Install needed utilities
+sudo apt update
+sudo apt install -y git nmap build-essential
+sudo apt install -y python3.12 python3.12-venv python3.12-dev
+
+# When apt not found python3.12 use:
+sudo apt install -y software-properties-common
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install -y python3.12 python3.12-venv python3.12-dev
+
 # 1. Clone the repository
 git clone <repo-url> Milmap
 cd Milmap
 
 # 2. Create and activate a virtual environment
-python -m venv .venv
+python3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1          # Windows PowerShell
 # source .venv/bin/activate           # Linux / macOS
 
 # 3. Install Milmap and its dependencies
 pip install -e .
 
-# 4. Create the database (creates data/app.sqlite3, stamped at the current schema)
-alembic upgrade head
+# 4. Create the database (creates data/app.sqlite3 from the current models)
+python -m asset_dashboard.db.init
 
 # 5. Seed the offline compliance reference data
 #    (version thresholds + default-credential catalog from data/reference/*.json)
