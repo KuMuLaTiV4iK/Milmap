@@ -21,7 +21,6 @@ data/secret_key
 # Pre-migration DB snapshots (data/backup-pre-*/) — local recovery copies of
 # the live database, same sensitivity as data/app.sqlite3* above.
 data/backup-pre-*/
-data/reference/
 
 # V0.7: the pre-shared HMAC key(s) used to verify a version-update bundle's
 # integrity/authenticity — a local secret, provisioned offline on this
