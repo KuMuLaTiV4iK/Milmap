@@ -213,7 +213,21 @@ sudo apt update
 sudo apt install -y git nmap build-essential
 sudo apt install -y python3.12 python3.12-venv python3.12-dev
 
-# When apt not found python3.12 use:
+# When apt not found python3.12 on Kali:
+sudo apt install -y build-essential libssl-dev zlib1g-dev \
+libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev \
+xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+
+curl https://pyenv.run | bash
+
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
+echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
+echo 'eval "$(pyenv init -)"' >> ~/.zshrc
+source ~/.zshrc
+pyenv install 3.12
+pyenv global 3.12
+
+# When apt not found python3.12 on Ubuntu:
 sudo apt install -y software-properties-common
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt update
