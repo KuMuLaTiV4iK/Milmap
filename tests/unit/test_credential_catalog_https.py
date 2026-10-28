@@ -39,16 +39,25 @@ def test_https_check_with_seeded_catalog_makes_real_guarded_attempts(client, mon
         lambda *a, **k: ProbeAttemptResult(matched=False, response_excerpt=""),
     )
 
+    from asset_dashboard.db.models import DefaultCredentialEntry
+
     sleep_calls = []
     with session_scope() as session:
+        # The default ceiling is the whole dictionary (exhaustive audit,
+        # constitution v2.0.0), so attempts should equal the seeded https
+        # candidate count — not the legacy `credential_check_max_attempts`.
+        https_candidates = sum(
+            len(e.credentials)
+            for e in session.query(DefaultCredentialEntry).filter_by(service="https").all()
+        )
         result = check_default_credentials(
             session, "10.0.0.1", 443, "https", sleep_fn=lambda s: sleep_calls.append(s)
         )
 
     # Before the fix: 0 candidates -> 0 attempts -> instantly "compliant".
     # After: real candidates are tried under the same guard as every
-    # other service (capped attempts, cooldown honored).
+    # other service (cooldown honored between consecutive attempts).
     assert result.attempts_made > 0
-    assert result.attempts_made <= settings.credential_check_max_attempts
+    assert result.attempts_made == https_candidates
     if result.attempts_made > 1:
         assert all(s == settings.credential_check_cooldown_seconds for s in sleep_calls)

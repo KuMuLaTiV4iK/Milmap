@@ -134,3 +134,53 @@ def test_csrf_token_is_captured_and_submitted(monkeypatch):
     }
     http_probe.attempt("10.10.0.5", 80, "admin", "x", [], probe_config=cfg)
     assert seen["csrf"] == "tok-123"
+
+
+def test_login_page_and_action_can_differ(monkeypatch):
+    """Grandstream-style: GET the form at one path ("/"), POST the credential
+    to a different action ("/cgi-bin/dologin"), and judge success by a keyword
+    on the authenticated page reached after an optional redirect."""
+    record = {"requests": []}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        record["requests"].append((request.method, request.url.path))
+        if request.method == "GET" and request.url.path == "/":
+            return httpx.Response(200, html="<form action='/cgi-bin/dologin'>login</form>")
+        if request.url.path == "/cgi-bin/dologin":
+            form = parse_qs(request.content.decode())
+            if (form.get("username") or [""])[0] == "user" and (form.get("password") or [""])[
+                0
+            ] == "123":
+                # Successful login redirects to the status page.
+                return httpx.Response(302, headers={"Location": "/status"})
+            return httpx.Response(200, html="Invalid password")
+        if request.url.path == "/status":
+            return httpx.Response(200, html="<h1>Grandstream Device Configuration</h1>")
+        return httpx.Response(404)
+
+    real_client = httpx.Client
+
+    def client_factory(*args, **kwargs):
+        record["follow_redirects"] = kwargs.get("follow_redirects")
+        kwargs["transport"] = httpx.MockTransport(handler)
+        return real_client(*args, **kwargs)
+
+    monkeypatch.setattr(http_probe.httpx, "Client", client_factory)
+
+    cfg = {
+        "login_path": "/",
+        "action": "/cgi-bin/dologin",
+        "method": "POST",
+        "follow_redirects": True,
+        "success": {"keywords": ["Device Configuration"]},
+        "failure": {"keywords": ["Invalid"]},
+    }
+
+    ok = http_probe.attempt("10.10.0.7", 80, "user", "123", [], probe_config=cfg)
+    assert record["requests"][0] == ("GET", "/")
+    assert ("POST", "/cgi-bin/dologin") in record["requests"]
+    assert record["follow_redirects"] is True
+    assert ok.matched is True
+
+    bad = http_probe.attempt("10.10.0.7", 80, "user", "wrong", [], probe_config=cfg)
+    assert bad.matched is False
