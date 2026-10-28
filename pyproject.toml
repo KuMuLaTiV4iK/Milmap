@@ -47,6 +47,8 @@ asyncio_mode = "auto"
 line-length = 100
 target-version = "py311"
 src = ["src", "tests"]
+extend-exclude = ["migrations"]   # Alembic-generated; CI already skips it
+force-exclude = true              # make pre-commit honor the exclude
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
