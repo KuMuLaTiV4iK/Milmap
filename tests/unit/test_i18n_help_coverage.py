@@ -1,5 +1,6 @@
 """FR-038: every configuration control id referenced by a template must
 have a Ukrainian help entry in web/i18n.py's HELP registry."""
+
 import re
 from pathlib import Path
 

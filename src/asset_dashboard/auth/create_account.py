@@ -4,6 +4,7 @@ Usage:
     python -m asset_dashboard.auth.create_account --username admin
 (prompts for a password meeting the >=20-char policy; never echoes it)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -43,9 +44,7 @@ def main() -> int:
         # every subsequent account defaults to Operator.
         is_first_account = session.query(OperatorAccount).count() == 0
         role = (
-            OperatorAccountRole.ADMINISTRATOR
-            if is_first_account
-            else OperatorAccountRole.OPERATOR
+            OperatorAccountRole.ADMINISTRATOR if is_first_account else OperatorAccountRole.OPERATOR
         )
 
         account = OperatorAccount(

@@ -4,6 +4,7 @@ Run locally (air-gapped host, no external interfaces):
 
     python -m asset_dashboard.main
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator

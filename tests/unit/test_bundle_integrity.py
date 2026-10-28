@@ -2,6 +2,7 @@
 verification. Valid HMAC/digest accepted; tampered payload, wrong
 key_id, missing field, unknown schema all rejected; the key never
 appears in any output."""
+
 import hashlib
 import hmac
 import json

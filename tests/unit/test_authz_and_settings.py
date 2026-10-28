@@ -1,5 +1,6 @@
 """Unit tests for auth/authz.py (role gates) and settings_store/service.py
 (the admin-editable security-settings floor, FR-027, FR-028, FR-032)."""
+
 import pytest
 
 from asset_dashboard.settings_store.service import (

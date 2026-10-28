@@ -8,6 +8,7 @@ version-validity result is non_compliant.
   runs — a run without version-validity findings carries no annotation, so the
   control is disabled client-side (FR-003, FR-004, SC-003).
 """
+
 from asset_dashboard.db.base import session_scope
 from asset_dashboard.db.models import (
     ComplianceControl,

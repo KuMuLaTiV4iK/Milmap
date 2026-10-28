@@ -51,9 +51,7 @@ def test_home_page_lists_profile_and_non_compliance_scan(authed_client, monkeypa
 def test_home_page_shows_at_most_5_recent_profiles_and_20_recent_scans(authed_client, monkeypatch):
     _patch_successful_scan(monkeypatch)
     for i in range(7):
-        authed_client.post(
-            "/api/profiles", json=dict(NON_COMPLIANCE_PROFILE, name=f"Profile {i}")
-        )
+        authed_client.post("/api/profiles", json=dict(NON_COMPLIANCE_PROFILE, name=f"Profile {i}"))
 
     page = authed_client.get("/", headers={"accept": "text/html"})
     assert page.status_code == 200

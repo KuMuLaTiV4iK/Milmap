@@ -1,4 +1,5 @@
 """Admin user management (FR-026-FR-034). See contracts/http-api-delta.md."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

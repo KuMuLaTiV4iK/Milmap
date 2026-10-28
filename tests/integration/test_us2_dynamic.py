@@ -34,9 +34,7 @@ def test_duplicate_without_hx_request_still_returns_json(authed_client):
 
 def test_delete_via_hx_request_returns_empty_body_204(authed_client):
     profile = authed_client.post("/api/profiles", json=PROFILE).json()
-    resp = authed_client.delete(
-        f"/api/profiles/{profile['id']}", headers={"HX-Request": "true"}
-    )
+    resp = authed_client.delete(f"/api/profiles/{profile['id']}", headers={"HX-Request": "true"})
     assert resp.status_code == 204
     assert resp.text == ""
 
@@ -54,8 +52,6 @@ def test_profiles_list_page_renders_dynamic_wiring(authed_client):
 
 
 def test_failed_delete_of_nonexistent_profile_returns_404_and_json_error(authed_client):
-    resp = authed_client.delete(
-        "/api/profiles/does-not-exist", headers={"HX-Request": "true"}
-    )
+    resp = authed_client.delete("/api/profiles/does-not-exist", headers={"HX-Request": "true"})
     assert resp.status_code == 404
     assert resp.json()["error"]["code"] == "not_found"

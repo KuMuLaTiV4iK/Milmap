@@ -1,6 +1,7 @@
 """Unit tests for the shared row-count-based archival helper
 (archival.py): archives the oldest rows once a table's non-archived
 count exceeds a threshold — never deletes."""
+
 from __future__ import annotations
 
 from asset_dashboard.archival import archive_oldest

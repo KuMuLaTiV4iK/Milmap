@@ -1,6 +1,7 @@
 """FR-003a: `validate_target_scope`/`validate_profile` allow an empty
 target when `require_target=False`, while a present-but-invalid target is
 still fully validated either way."""
+
 from asset_dashboard.profiles.validation import validate_profile, validate_target_scope
 
 

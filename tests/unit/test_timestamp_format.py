@@ -1,8 +1,9 @@
 """All UI timestamps render as DD.MM.YY HH:MM:SS in the host's local zone."""
+
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from asset_dashboard.web.templating import local_ts
 
@@ -19,7 +20,7 @@ def test_local_ts_shape_for_iso_string():
 
 def test_local_ts_matches_manual_local_conversion():
     naive_utc = datetime(2026, 10, 22, 17, 9, 53)
-    expected = naive_utc.replace(tzinfo=timezone.utc).astimezone().strftime("%d.%m.%y %H:%M:%S")
+    expected = naive_utc.replace(tzinfo=UTC).astimezone().strftime("%d.%m.%y %H:%M:%S")
     assert local_ts(naive_utc) == expected
 
 

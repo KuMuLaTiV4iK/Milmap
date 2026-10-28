@@ -2,9 +2,7 @@
 
 
 def test_new_users_default_to_operator_role(admin_client):
-    resp = admin_client.post(
-        "/api/users", json={"username": "newop", "password": "x" * 25}
-    )
+    resp = admin_client.post("/api/users", json={"username": "newop", "password": "x" * 25})
     assert resp.status_code == 201
     assert resp.json()["role"] == "operator"
 
@@ -32,9 +30,7 @@ def test_demoting_the_last_active_admin_is_rejected(admin_client, bootstrap_admi
     listing = admin_client.get("/api/users").json()
     [self_account] = [u for u in listing if u["role"] == "administrator"]
 
-    resp = admin_client.put(
-        f"/api/users/{self_account['id']}", json={"role": "operator"}
-    )
+    resp = admin_client.put(f"/api/users/{self_account['id']}", json={"role": "operator"})
     assert resp.status_code == 409
     assert resp.json()["error"]["code"] == "last_admin"
 
@@ -62,9 +58,7 @@ def test_reset_password_invalidates_target_session(admin_client, second_client):
     created = admin_client.post(
         "/api/users", json={"username": "victim", "password": "x" * 25}
     ).json()
-    login = second_client.post(
-        "/api/auth/login", json={"username": "victim", "password": "x" * 25}
-    )
+    login = second_client.post("/api/auth/login", json={"username": "victim", "password": "x" * 25})
     assert login.status_code == 200
 
     resp = admin_client.post(

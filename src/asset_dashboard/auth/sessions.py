@@ -5,6 +5,7 @@ simple and immediate. The session id itself is an opaque, signed cookie
 value; session state (username, last-seen time) lives in a server-side
 store, not in the cookie.
 """
+
 from __future__ import annotations
 
 import time

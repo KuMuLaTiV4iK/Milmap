@@ -7,6 +7,7 @@ login — a definitive body signature, matched here rather than a bare TCP
 connect (FR-036a). The attempted secret is only ever sent, never echoed in
 the reply, so it cannot leak into the recorded excerpt (FR-039).
 """
+
 from __future__ import annotations
 
 import socket

@@ -6,6 +6,7 @@ first match, exhausts the chosen dictionary under a configurable ceiling
 NON-NEGOTIABLE invariant). A configured ceiling below the dictionary size is
 the only path to `inconclusive`.
 """
+
 from asset_dashboard.compliance import credential_check
 from asset_dashboard.compliance.credential_check import check_default_credentials
 from asset_dashboard.compliance.probes.base import ProbeAttemptResult
@@ -127,7 +128,8 @@ def test_tool_check_audit_event_never_contains_a_secret(client, monkeypatch):
     with session_scope() as session:
         session.add(
             DefaultCredentialEntry(
-                vendor="Test Vendor", service="fake",
+                vendor="Test Vendor",
+                service="fake",
                 credentials=[{"username": "admin", "secret": "a-very-secret-value"}],
                 success_keywords=["OK-SUCCESS"],
             )
@@ -136,9 +138,7 @@ def test_tool_check_audit_event_never_contains_a_secret(client, monkeypatch):
         run_credential_check(session, target_scope=["10.0.0.9"], port=22, service="fake")
 
     with session_scope() as session:
-        entries = (
-            session.query(AuditLogEntry).filter_by(event_type=AuditEventType.TOOL_CHECK).all()
-        )
+        entries = session.query(AuditLogEntry).filter_by(event_type=AuditEventType.TOOL_CHECK).all()
         assert entries
         for entry in entries:
             assert "a-very-secret-value" not in str(entry.detail)

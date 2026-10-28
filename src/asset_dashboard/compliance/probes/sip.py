@@ -16,6 +16,7 @@ One full exchange (two UDP round-trips) per call — the orchestrator
 called and how far apart (the device-safety invariants); this function
 has no retry logic of its own.
 """
+
 from __future__ import annotations
 
 import hashlib

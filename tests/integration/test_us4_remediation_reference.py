@@ -1,6 +1,7 @@
 """Integration test for User Story 4: a non-compliant row is
 orange-highlighted and shows the expected valid version/note, and the
 reference-versions view lists entries and is editable (FR-012-FR-015b)."""
+
 from asset_dashboard.db.base import session_scope
 from asset_dashboard.db.models import ReferenceVersionEntry
 from asset_dashboard.discovery import nmap_runner
@@ -51,7 +52,9 @@ def test_non_compliant_row_orange_and_shows_expected_valid_version(authed_client
     with session_scope() as session:
         session.add(
             ReferenceVersionEntry(
-                vendor="OpenSSH", type="router", min_version="9.0",
+                vendor="OpenSSH",
+                type="router",
+                min_version="9.0",
                 note="End-of-life",
             )
         )

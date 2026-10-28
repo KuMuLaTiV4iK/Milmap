@@ -3,6 +3,7 @@ default history/schedules/credential-check listings, and reappear with
 `include_archived=true` — covering the three tables named in the
 archivation request (scan history, scheduled tasks, credential-check
 history)."""
+
 from __future__ import annotations
 
 from datetime import timedelta
@@ -65,7 +66,12 @@ def test_credential_check_run_wires_archival_at_100_rows(authed_client):
 
     resp = authed_client.post(
         "/api/tools/credential-check",
-        json={"target_scope": ["10.10.0.5"], "port": 22, "service": "ssh", "dictionary_id": dict_id},
+        json={
+            "target_scope": ["10.10.0.5"],
+            "port": 22,
+            "service": "ssh",
+            "dictionary_id": dict_id,
+        },
     )
     assert resp.status_code == 201, resp.text
     run_id = resp.json()["run_id"]
@@ -85,12 +91,8 @@ def test_credential_check_run_wires_archival_at_100_rows(authed_client):
 
 def test_credential_check_runs_api_excludes_archived_by_default(authed_client):
     with session_scope() as session:
-        session.add(
-            ToolCheckRun(target_scope=["10.0.0.1"], port=22, service="ssh", archived=False)
-        )
-        session.add(
-            ToolCheckRun(target_scope=["10.0.0.2"], port=22, service="ssh", archived=True)
-        )
+        session.add(ToolCheckRun(target_scope=["10.0.0.1"], port=22, service="ssh", archived=False))
+        session.add(ToolCheckRun(target_scope=["10.0.0.2"], port=22, service="ssh", archived=True))
 
     visible = authed_client.get("/api/tools/credential-check/runs").json()
     assert len(visible) == 1

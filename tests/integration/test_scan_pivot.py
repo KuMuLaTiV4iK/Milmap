@@ -7,6 +7,7 @@ with a chosen profile via the Scan Configuration page.
 - a second launch of an already-running profile returns 409 already_running
   (FR-019).
 """
+
 import threading
 
 from asset_dashboard.discovery import nmap_runner

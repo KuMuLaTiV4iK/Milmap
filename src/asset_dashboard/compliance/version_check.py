@@ -5,6 +5,7 @@ local SQLite query) plus the in-memory comparator — this function makes NO
 network or external call of any kind, consistent with the air-gapped
 deployment (FR-008).
 """
+
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -17,9 +18,7 @@ _RESULT_NON_COMPLIANT = "non_compliant"
 _RESULT_UNKNOWN = "unknown"
 
 
-def _find_threshold(
-    session: Session, lowered_haystack: str
-) -> ReferenceVersionEntry | None:
+def _find_threshold(session: Session, lowered_haystack: str) -> ReferenceVersionEntry | None:
     """Best match against `vendor` (+`model`) — NOT `type`: a device-type
     category (e.g. "IP-Phone") cannot be expected to appear in a scanned
     service/firmware banner, so it plays no role in matching. A
@@ -36,9 +35,7 @@ def _find_threshold(
         return None
     candidates.sort(key=lambda e: len(e.vendor), reverse=True)
 
-    model_matches = [
-        e for e in candidates if e.model and e.model.lower() in lowered_haystack
-    ]
+    model_matches = [e for e in candidates if e.model and e.model.lower() in lowered_haystack]
     if model_matches:
         return model_matches[0]
     return next((e for e in candidates if not e.model), candidates[0])

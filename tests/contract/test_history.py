@@ -1,4 +1,5 @@
 """Contract tests for /api/history* and cache-hit vs force-fresh (FR-022-FR-026)."""
+
 import time
 
 from asset_dashboard.discovery import nmap_runner

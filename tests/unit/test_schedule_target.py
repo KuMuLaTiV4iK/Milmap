@@ -1,6 +1,7 @@
 """FR-021a/FR-021b: `tick()` passes a schedule's own `target_scope` as the
 run's target override, and a schedule's target is validated the same way
 a profile's is."""
+
 from datetime import timedelta
 
 from asset_dashboard.db.base import session_scope

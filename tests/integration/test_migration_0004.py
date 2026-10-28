@@ -2,6 +2,7 @@
 rows, run `alembic upgrade head`, and assert the lowest-`valid` derivation,
 single collapsed row per product, and `needs_review=true` on an
 invalid-only product."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -95,8 +96,7 @@ def test_migration_0004_derives_threshold_and_flags_invalid_only(tmp_path, monke
     with engine.connect() as conn:
         rows = conn.execute(
             sa.text(
-                "SELECT vendor, product, min_version, needs_review "
-                "FROM reference_version_entries"
+                "SELECT vendor, product, min_version, needs_review FROM reference_version_entries"
             )
         ).fetchall()
     engine.dispose()

@@ -7,6 +7,7 @@ at runtime), not a fixed value baked into the SessionStore at construction
 — so this test overrides it via a SecuritySetting row rather than
 mutating the store's private attribute directly.
 """
+
 import time
 
 

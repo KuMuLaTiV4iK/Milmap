@@ -4,6 +4,7 @@ Guards the binding invariants of the design-system contract: air-gapped
 (no off-origin asset URL), CSP unchanged, local-only Volja @font-face, a
 single aria-hidden decoration layer, and text on every status badge.
 """
+
 from __future__ import annotations
 
 import re
@@ -27,9 +28,19 @@ _CSP_BASELINE = (
     "form-action 'self'"
 )
 
-_PAGES = ["/", "/profiles", "/history", "/schedules", "/tools/credential-check", "/configuration", "/scan"]
+_PAGES = [
+    "/",
+    "/profiles",
+    "/history",
+    "/schedules",
+    "/tools/credential-check",
+    "/configuration",
+    "/scan",
+]
 # Asset-loading tags only; the footer project <a href> is a navigation link.
-_ASSET_TAG = re.compile(r'<(?:link|script|img|source|iframe)[^>]*(?:src|href)="(?:https?:)?//', re.I)
+_ASSET_TAG = re.compile(
+    r'<(?:link|script|img|source|iframe)[^>]*(?:src|href)="(?:https?:)?//', re.I
+)
 
 
 def _get(client, path):

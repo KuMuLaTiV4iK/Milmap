@@ -6,6 +6,7 @@ profiles and the UI entirely (deferred to a later standalone function):
 `management_link` is never populated by the runner and never rendered in
 the run-detail page, even if a legacy `host_links` payload is still sent.
 """
+
 import time
 
 from asset_dashboard.discovery import nmap_runner

@@ -1,4 +1,5 @@
 """Unit tests for discovery/parser.py (nmap XML -> structured results)."""
+
 from asset_dashboard.discovery.parser import parse_nmap_xml
 
 SAMPLE_XML = """<?xml version="1.0"?>

@@ -5,6 +5,7 @@ A valid edit updates the same schedule in place (recomputing next_run_at and
 recording a SCHEDULE_CHANGE audit event); an invalid edit is rejected and
 leaves the schedule unchanged; a completed once re-enabled with a future
 time becomes active again."""
+
 from datetime import timedelta
 
 from asset_dashboard.db.base import session_scope

@@ -2,6 +2,7 @@
 the local nmap install's own `scripts/script.db` at call time (never a
 bundled/static list, never a network fetch) and adds every script not
 already on the allow-list."""
+
 from __future__ import annotations
 
 import pytest
@@ -62,9 +63,7 @@ def test_import_creates_entries_with_safety_derived_from_catalog(client, tmp_pat
     assert result == {"created": 3, "skipped": 0, "total_in_catalog": 3}
 
     with session_scope() as session:
-        entries = {
-            e.script_id: e for e in session.query(NseScriptAllowlistEntry).all()
-        }
+        entries = {e.script_id: e for e in session.query(NseScriptAllowlistEntry).all()}
         assert entries["acarsd-info"].safety == "safe"
         assert entries["acarsd-info"].description == "discovery, safe"
         assert entries["afp-brute"].safety == "other"

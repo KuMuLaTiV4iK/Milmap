@@ -2,6 +2,7 @@
 no new runtime dependency was introduced, and NSE script execution never
 reaches outside the local nmap install (no --script-updatedb, no remote
 fetch flags)."""
+
 import tomllib
 from pathlib import Path
 
@@ -14,9 +15,21 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # by design: adding a package to pyproject.toml should be a deliberate,
 # reviewed act, not a silent side effect of a future edit.
 _KNOWN_DEPENDENCY_PREFIXES = {
-    "fastapi", "uvicorn", "pyyaml", "jinja2", "sqlalchemy", "alembic",
-    "apscheduler", "argon2-cffi", "pydantic", "pydantic-settings",
-    "python-libnmap", "paramiko", "httpx", "itsdangerous", "python-multipart",
+    "fastapi",
+    "uvicorn",
+    "pyyaml",
+    "jinja2",
+    "sqlalchemy",
+    "alembic",
+    "apscheduler",
+    "argon2-cffi",
+    "pydantic",
+    "pydantic-settings",
+    "python-libnmap",
+    "paramiko",
+    "httpx",
+    "itsdangerous",
+    "python-multipart",
 }
 
 

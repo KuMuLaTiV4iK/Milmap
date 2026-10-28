@@ -6,6 +6,7 @@ body matched against the configured success keywords (FR-036a). A rejected
 login raises inside ftplib and yields an empty body (no match), so
 compliance is never inferred from a bare protocol success alone.
 """
+
 from __future__ import annotations
 
 import ftplib

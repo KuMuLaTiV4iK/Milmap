@@ -4,6 +4,7 @@ Policy: minimum length 20 characters, enforced at account creation AND at
 every password change. Passwords are never stored in plaintext or any
 recoverable form — only as an Argon2id hash.
 """
+
 from __future__ import annotations
 
 from argon2 import PasswordHasher

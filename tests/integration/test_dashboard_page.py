@@ -9,6 +9,7 @@ US2 (FR-003, FR-006): up to 5 soonest-upcoming *enabled* schedules surface
 in the left column, each linking to /schedules; disabled schedules are
 excluded and an empty set renders the empty state, not an error.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta

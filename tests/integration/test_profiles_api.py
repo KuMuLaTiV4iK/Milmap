@@ -6,6 +6,7 @@ visible placeholder token for the empty target, so the preview is never blank
 or a target-only validation error. A real target renders the executable
 command unchanged, and other validation errors (bad port spec) still fail.
 """
+
 from __future__ import annotations
 
 PLACEHOLDER = "<ціль>"

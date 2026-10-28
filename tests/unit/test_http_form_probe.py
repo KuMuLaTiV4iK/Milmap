@@ -5,6 +5,7 @@ to the configured login path, judge success/rejection by the configured
 status/keywords, tolerate self-signed TLS on HTTPS (verify=False), and never
 leak the attempted secret into the response excerpt.
 """
+
 from __future__ import annotations
 
 from urllib.parse import parse_qs
@@ -84,8 +85,13 @@ def test_https_tolerates_self_signed_tls(monkeypatch):
     _install_mock(monkeypatch, record)
 
     http_probe.attempt(
-        "10.10.0.5", 443, CORRECT["username"], CORRECT["secret"], [],
-        scheme="https", probe_config=_PROBE_CONFIG,
+        "10.10.0.5",
+        443,
+        CORRECT["username"],
+        CORRECT["secret"],
+        [],
+        scheme="https",
+        probe_config=_PROBE_CONFIG,
     )
 
     assert record["verify"] is False  # self-signed internal certs are tolerated
@@ -109,9 +115,7 @@ def test_csrf_token_is_captured_and_submitted(monkeypatch):
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.method == "GET":
-            return httpx.Response(
-                200, html='<input name="csrf_token" value="tok-123">'
-            )
+            return httpx.Response(200, html='<input name="csrf_token" value="tok-123">')
         form = parse_qs(request.content.decode())
         seen["csrf"] = (form.get("csrf_token") or [""])[0]
         return httpx.Response(200, html="Dashboard")

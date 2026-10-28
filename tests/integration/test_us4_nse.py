@@ -3,6 +3,7 @@ allow-list in Configuration (see spec.md US4 Independent Test): admin adds
 a script in Configuration -> it appears in the profile checklist -> a
 profile applying it runs with --script; removing it disables the
 selection."""
+
 import time
 
 from asset_dashboard.discovery import nmap_runner

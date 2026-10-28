@@ -4,6 +4,7 @@ One connection attempt per call, confirmed by matching the post-auth
 banner/output against the configured success keywords (FR-036a) — never
 by the mere absence of an AuthenticationException alone.
 """
+
 from __future__ import annotations
 
 import paramiko

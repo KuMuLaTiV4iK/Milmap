@@ -3,6 +3,7 @@
 Error shape (contracts/http-api.md):
     { "error": { "code": str, "message": str, "fields"?: {field: message} } }
 """
+
 from __future__ import annotations
 
 import hmac

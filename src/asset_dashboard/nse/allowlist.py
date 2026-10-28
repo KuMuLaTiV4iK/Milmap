@@ -8,6 +8,7 @@ Adding a non-"safe" entry is permitted for Administrators but returns a
 non-blocking warning and is audit-logged (FR-016) — the curation act
 itself is deliberate and logged, not a weakening of the allow-list guard.
 """
+
 from __future__ import annotations
 
 import json
@@ -47,9 +48,7 @@ class NmapScriptsNotFoundError(Exception):
 
 def validate_script_id(script_id: str) -> None:
     if not script_id or not SCRIPT_ID_RE.match(script_id):
-        raise InvalidScriptIdError(
-            "script_id must be non-empty and match ^[a-z0-9][a-z0-9._-]*$"
-        )
+        raise InvalidScriptIdError("script_id must be non-empty and match ^[a-z0-9][a-z0-9._-]*$")
 
 
 def list_entries(session: Session) -> list[NseScriptAllowlistEntry]:

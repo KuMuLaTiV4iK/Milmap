@@ -7,6 +7,7 @@ page replaces the browser target prompt for every Run now.
   edits while the saved profile is unchanged (SC-004);
 - no Run-now entry point contains a window.prompt call (SC-005).
 """
+
 from tests.contract.test_runs import _patch_successful_scan, _poll_until_finished
 
 TARGETED_PROFILE = {

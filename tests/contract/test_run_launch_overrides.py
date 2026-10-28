@@ -12,6 +12,7 @@ Invariants exercised (contracts/http-api-delta.md §1):
   reaches the nmap command line;
 - any present override produces a fresh run (cache bypassed, R2).
 """
+
 import time
 
 from asset_dashboard.discovery import nmap_runner

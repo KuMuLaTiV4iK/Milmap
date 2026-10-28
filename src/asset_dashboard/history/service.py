@@ -1,4 +1,5 @@
 """History listing + retention (FR-022, FR-023, FR-026, FR-027)."""
+
 from __future__ import annotations
 
 from sqlalchemy.orm import Session

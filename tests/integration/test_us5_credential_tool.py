@@ -5,6 +5,7 @@ to `completed`; a worker failure ends `failed` with an `error_detail` (never
 stuck). Also retained from earlier: a scheduled task fires via tick() and
 produces an equivalent run, and a discovery-profile run never triggers the
 check (FR-020 decoupling)."""
+
 import threading
 import time
 
@@ -107,7 +108,10 @@ def test_run_appears_running_then_completes(authed_client, monkeypatch):
     run_id = resp.json()["run_id"]
 
     # Visible as running before the (gated) worker completes.
-    assert authed_client.get(f"/api/tools/credential-check/runs/{run_id}").json()["status"] == "running"
+    assert (
+        authed_client.get(f"/api/tools/credential-check/runs/{run_id}").json()["status"]
+        == "running"
+    )
 
     gate.set()
     done = _poll_tool_run(authed_client, run_id)
@@ -134,9 +138,7 @@ def test_on_demand_run_is_audited(authed_client, monkeypatch):
     assert detail["results"][0]["attempts_made"] == 10
 
     with session_scope() as session:
-        count = (
-            session.query(AuditLogEntry).filter_by(event_type=AuditEventType.TOOL_CHECK).count()
-        )
+        count = session.query(AuditLogEntry).filter_by(event_type=AuditEventType.TOOL_CHECK).count()
         assert count >= 1
 
 

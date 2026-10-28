@@ -1,6 +1,7 @@
 """Unit tests for the minimum-version threshold check (FR-001-FR-008):
 below/equal/above threshold, no-threshold, unorderable detected version,
 and zero network calls."""
+
 import socket
 
 from asset_dashboard.compliance.version_check import check_version
@@ -10,9 +11,7 @@ from asset_dashboard.db.models import ReferenceVersionEntry
 
 def test_below_threshold_is_non_compliant(client):
     with session_scope() as session:
-        session.add(
-            ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0")
-        )
+        session.add(ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0"))
 
     with session_scope() as session:
         result, detail = check_version(session, "OpenSSH 7.4")
@@ -26,9 +25,7 @@ def test_below_threshold_is_non_compliant(client):
 
 def test_at_threshold_is_compliant(client):
     with session_scope() as session:
-        session.add(
-            ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0")
-        )
+        session.add(ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0"))
 
     with session_scope() as session:
         result, detail = check_version(session, "OpenSSH 9.0")
@@ -39,9 +36,7 @@ def test_at_threshold_is_compliant(client):
 
 def test_above_threshold_is_compliant(client):
     with session_scope() as session:
-        session.add(
-            ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0")
-        )
+        session.add(ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0"))
 
     with session_scope() as session:
         result, _detail = check_version(session, "OpenSSH 9.2")
@@ -59,9 +54,7 @@ def test_no_threshold_on_file_is_unknown(client):
 
 def test_unorderable_detected_version_is_unknown(client):
     with session_scope() as session:
-        session.add(
-            ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0")
-        )
+        session.add(ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0"))
 
     with session_scope() as session:
         result, detail = check_version(session, "OpenSSH not-a-version")

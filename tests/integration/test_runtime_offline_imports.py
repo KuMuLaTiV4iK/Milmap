@@ -10,6 +10,7 @@ the HTTP-client restriction below is scoped to `version_ingestion/`
 only, per research D5/contracts/fetcher-cli.md ("the web app does not
 depend on" the fetcher's HTTP client).
 """
+
 from __future__ import annotations
 
 import ast

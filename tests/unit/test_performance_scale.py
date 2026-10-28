@@ -6,6 +6,7 @@ This seeds data directly via the DB session (bypassing nmap entirely —
 scale of the DATA, not of a live scan, is what SC-012 is about) and
 measures the actual history-listing query path.
 """
+
 import time
 
 from asset_dashboard.db.base import session_scope

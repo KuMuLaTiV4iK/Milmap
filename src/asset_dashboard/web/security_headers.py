@@ -4,6 +4,7 @@ Defense-in-depth for a locally-hosted admin tool: these don't replace the
 auth gate (auth/sessions.py) but reduce the blast radius of any XSS/
 clickjacking/MIME-sniffing issue in the server-rendered pages.
 """
+
 from __future__ import annotations
 
 from fastapi import Request, Response

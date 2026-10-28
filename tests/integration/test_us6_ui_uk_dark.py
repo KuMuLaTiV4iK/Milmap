@@ -15,8 +15,13 @@ PROFILE = {
 }
 
 PAGES = [
-    "/", "/profiles", "/profiles/new", "/history", "/schedules",
-    "/tools/credential-check", "/configuration",
+    "/",
+    "/profiles",
+    "/profiles/new",
+    "/history",
+    "/schedules",
+    "/tools/credential-check",
+    "/configuration",
 ]
 
 
@@ -51,7 +56,7 @@ def test_profile_editor_help_affordance_and_english_technical_ids(authed_client)
     assert "help-icon" in page.text
     # Technical identifiers stay literal English.
     assert 'value="T3"' in page.text
-    assert "value=\"T4\"" in page.text
+    assert 'value="T4"' in page.text
 
 
 def test_run_detail_shows_dark_theme_and_english_ports(authed_client, monkeypatch):

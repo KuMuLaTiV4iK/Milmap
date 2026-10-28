@@ -3,6 +3,7 @@ FR-016-FR-021; contracts/http-api-delta.md §B/§C). This module verifies
 and applies an already-produced bundle — it never fetches anything
 itself (that is `tools/version_fetcher/`'s job, on a different machine).
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -91,15 +92,15 @@ def _find_current_entry(
     vendor+model only); this key only controls import create-vs-update
     dedup, so two tracks never silently clobber each other."""
     query = session.query(ReferenceVersionEntry).filter_by(vendor=vendor, type=device_type)
-    query = query.filter_by(model=model) if model else query.filter(
-        ReferenceVersionEntry.model.is_(None)
+    query = (
+        query.filter_by(model=model)
+        if model
+        else query.filter(ReferenceVersionEntry.model.is_(None))
     )
     return query.one_or_none()
 
 
-def preview_import(
-    session: Session, raw_bundle: str | bytes, keys: dict[str, bytes]
-) -> dict:
+def preview_import(session: Session, raw_bundle: str | bytes, keys: dict[str, bytes]) -> dict:
     """Verify the bundle (no writes) and return a review/diff
     (contracts/http-api-delta.md §C). Raises BundleInvalidError —
     unverified — on any integrity/authenticity failure."""
@@ -112,17 +113,13 @@ def preview_import(
     for entry in payload["entries"]:
         model = entry.get("model")
         if entry["status"] != "ok":
-            changes.append(
-                {"model": model, "status": "failed", "reason": entry.get("reason")}
-            )
+            changes.append({"model": model, "status": "failed", "reason": entry.get("reason")})
             continue
 
         current = _find_current_entry(session, vendor, model, entry.get("type"))
         incoming = entry["version"]
         current_version = current.min_version if current else None
-        comparison = (
-            compare_versions(incoming, current_version) if current_version else None
-        )
+        comparison = compare_versions(incoming, current_version) if current_version else None
         downgrade = comparison is not None and comparison < 0
         effect = "create" if current is None else "update"
         changes.append(
@@ -178,9 +175,7 @@ def apply_import(
         incoming = entry["version"]
         current = _find_current_entry(session, vendor, model, entry.get("type"))
         current_version = current.min_version if current else None
-        comparison = (
-            compare_versions(incoming, current_version) if current_version else None
-        )
+        comparison = compare_versions(incoming, current_version) if current_version else None
         is_downgrade = comparison is not None and comparison < 0
         needs_review = is_downgrade and not confirm_downgrade
 

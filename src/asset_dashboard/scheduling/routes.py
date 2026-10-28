@@ -7,6 +7,7 @@ shape (`/api/profiles/{id}/schedule`) to per-schedule CRUD
 (`/api/profiles/{id}/schedules`, `/api/schedules/{schedule_id}`), plus a
 create-from-history endpoint.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
@@ -80,9 +81,7 @@ def api_list_schedules(profile_id: str, session: Session = Depends(get_session))
 
 
 @router.post("/profiles/{profile_id}/schedules", status_code=201)
-def api_create_schedule(
-    profile_id: str, body: ScheduleIn, session: Session = Depends(get_session)
-):
+def api_create_schedule(profile_id: str, body: ScheduleIn, session: Session = Depends(get_session)):
     profile = session.get(DiscoveryProfile, profile_id)
     if profile is None:
         return JSONResponse(status_code=404, content=api_error("not_found", "Profile not found."))

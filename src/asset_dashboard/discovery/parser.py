@@ -5,6 +5,7 @@ fallback) rather than a third-party nmap wrapper, keeping the parsing
 dependency surface minimal and the logic directly testable against
 canned XML fixtures (no nmap binary required for tests).
 """
+
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET

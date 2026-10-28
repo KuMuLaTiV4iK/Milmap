@@ -5,6 +5,7 @@ replacement (`telnetlib3`) would mix awkwardly with this otherwise
 synchronous probe set — so this performs a minimal raw-socket login
 exchange instead (research.md's documented fallback).
 """
+
 from __future__ import annotations
 
 import socket

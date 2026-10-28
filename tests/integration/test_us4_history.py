@@ -2,6 +2,7 @@
 See spec.md US4 Independent Test: run a profile twice in quick succession,
 confirm the second is served from cache; confirm both are visible in
 history with correct timestamps/profile/params."""
+
 import time
 
 from asset_dashboard.discovery import nmap_runner

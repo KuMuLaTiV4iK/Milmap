@@ -3,6 +3,7 @@
 WAL mode improves concurrent read/write behavior for the "a few concurrent
 operators" scale this project targets (spec Assumption: Concurrency).
 """
+
 from __future__ import annotations
 
 from collections.abc import Generator

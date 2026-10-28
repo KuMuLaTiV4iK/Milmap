@@ -2,6 +2,7 @@
 and launched by supplying a target at launch time, from both the Home
 page and the profiles list; the override is used for that run only
 (FR-003a-FR-003d)."""
+
 from tests.contract.test_runs import _patch_successful_scan, _poll_until_finished
 
 TARGET_LESS_PROFILE = {

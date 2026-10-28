@@ -5,6 +5,7 @@ before a profile is ever saved) are translated into nmap flags — this
 function never accepts or forwards a raw/free-form flag string, which is
 the command-injection guard described in research.md.
 """
+
 from __future__ import annotations
 
 import shutil

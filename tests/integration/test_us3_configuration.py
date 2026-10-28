@@ -32,22 +32,24 @@ def test_full_configuration_flow(admin_client, second_client):
     assert second_client.get("/api/profiles").status_code == 200
 
     # 4. Admin can't lower the password floor below 20.
-    assert admin_client.put(
-        "/api/settings/security", json={"password_min_length": 10}
-    ).status_code == 422
-    # Admin CAN raise the session idle timeout.
-    resp = admin_client.put(
-        "/api/settings/security", json={"session_idle_timeout_seconds": 7200}
+    assert (
+        admin_client.put("/api/settings/security", json={"password_min_length": 10}).status_code
+        == 422
     )
+    # Admin CAN raise the session idle timeout.
+    resp = admin_client.put("/api/settings/security", json={"session_idle_timeout_seconds": 7200})
     assert resp.status_code == 200
     assert resp.json()["session_idle_timeout_seconds"] == 7200
 
     # 5. Admin can't deactivate/demote the only administrator.
     listing = admin_client.get("/api/users").json()
     [self_account] = [u for u in listing if u["role"] == "administrator"]
-    assert admin_client.put(
-        f"/api/users/{self_account['id']}", json={"status": "disabled"}
-    ).status_code == 409
+    assert (
+        admin_client.put(
+            f"/api/users/{self_account['id']}", json={"status": "disabled"}
+        ).status_code
+        == 409
+    )
 
     # Deactivating the operator invalidates their session.
     operator_account = next(u for u in listing if u["username"] == "field_operator")
@@ -62,10 +64,7 @@ def test_full_configuration_flow(admin_client, second_client):
     from asset_dashboard.db.models import AuditEventType, AuditLogEntry
 
     with session_scope() as session:
-        event_types = {
-            e.event_type
-            for e in session.query(AuditLogEntry).all()
-        }
+        event_types = {e.event_type for e in session.query(AuditLogEntry).all()}
     assert AuditEventType.ACCOUNT_CHANGE in event_types
     assert AuditEventType.CONFIG_CHANGE in event_types
 

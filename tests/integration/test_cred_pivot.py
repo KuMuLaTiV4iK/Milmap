@@ -8,6 +8,7 @@ results and pivot into the credential tool, pre-filled with those addresses.
   (attempt ceiling / cooldown) and is recorded in the audit log (SC-002,
   SC-006, FR-007/009). The pivot introduces no new attempt path.
 """
+
 from asset_dashboard.compliance import credential_check
 from asset_dashboard.compliance.probes.base import ProbeAttemptResult
 from asset_dashboard.db.base import session_scope
@@ -107,7 +108,5 @@ def test_check_from_pivoted_targets_runs_guarded_and_is_audited(authed_client, m
     assert detail["results"][0]["attempts_made"] == 3
 
     with session_scope() as session:
-        count = (
-            session.query(AuditLogEntry).filter_by(event_type=AuditEventType.TOOL_CHECK).count()
-        )
+        count = session.query(AuditLogEntry).filter_by(event_type=AuditEventType.TOOL_CHECK).count()
         assert count >= 1

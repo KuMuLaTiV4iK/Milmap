@@ -1,5 +1,6 @@
 """Migration 0005 (device-type follow-up): `product` is dropped,
 `type` is added (nullable, unset for pre-existing rows)."""
+
 from __future__ import annotations
 
 from pathlib import Path

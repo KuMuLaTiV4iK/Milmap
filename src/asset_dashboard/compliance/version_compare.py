@@ -9,6 +9,7 @@ orderable by this rule, or the two use mismatched schemes, comparison
 signals "not comparable" (`None`) — callers must treat that as `unknown`,
 never a guessed verdict.
 """
+
 from __future__ import annotations
 
 import re

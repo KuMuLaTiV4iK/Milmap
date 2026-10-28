@@ -4,6 +4,7 @@ FR-005-FR-010, FR-015).
 Only allow-listed scan_params/extracted_fields/selected_scripts ever reach
 the command line — there is no path here that accepts a raw flag string.
 """
+
 from asset_dashboard.discovery.nmap_runner import build_nmap_command
 
 

@@ -3,6 +3,7 @@
 The "З кешу?" column is removed from the History table; the remaining
 columns (started, profile, status, hosts) stay.
 """
+
 from __future__ import annotations
 
 from asset_dashboard.web.i18n import t

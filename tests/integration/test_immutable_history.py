@@ -1,6 +1,7 @@
 """FR-012a, SC-009: a finding's `checked_version`/`threshold` are frozen at
 scan time. Raising a threshold afterward never rewrites a historical
 finding; only a new scan reflects the new threshold."""
+
 import time
 
 from asset_dashboard.db.base import session_scope
@@ -60,9 +61,7 @@ def _poll_until_finished(client, run_id, timeout=5.0):
 
 def test_raising_threshold_does_not_rewrite_historical_finding(authed_client, monkeypatch):
     with session_scope() as session:
-        session.add(
-            ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0")
-        )
+        session.add(ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0"))
 
     def fake_start_nmap(
         target_scope, port_spec, scan_params, extracted_fields=None, selected_scripts=None

@@ -5,14 +5,17 @@ shows the "all closed/filtered" placeholder (FR-009-FR-011).
 
 Uses the real captured nmap output in debug/1_prof_output.txt (2
 distinct ports: 22/tcp, 8291/tcp -> small-scan mode)."""
+
 from pathlib import Path
 
 from asset_dashboard.discovery import nmap_runner
 from tests.contract.test_runs import _poll_until_finished
 
-FIXTURE_XML = (Path(__file__).resolve().parents[2] / "debug" / "1_prof_output.txt").read_text(
-    encoding="utf-8"
-).split("\n", 1)[1]  # drop the leading `nmap ...` command-line comment
+FIXTURE_XML = (
+    (Path(__file__).resolve().parents[2] / "debug" / "1_prof_output.txt")
+    .read_text(encoding="utf-8")
+    .split("\n", 1)[1]
+)  # drop the leading `nmap ...` command-line comment
 
 PROFILE = {
     "name": "Mikrotik sweep",

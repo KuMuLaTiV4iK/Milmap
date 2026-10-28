@@ -3,6 +3,7 @@
 This module accumulates entities across user stories (see data-model.md for
 the full schema). Each user story's tasks add its own model classes here.
 """
+
 from __future__ import annotations
 
 import enum
@@ -410,7 +411,9 @@ class DefaultCredentialEntry(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     vendor: Mapped[str] = mapped_column(String(128), index=True)
-    service: Mapped[str] = mapped_column(String(16), index=True)  # sip|ssh|http|https|telnet|ftp|routeros-api
+    service: Mapped[str] = mapped_column(
+        String(16), index=True
+    )  # sip|ssh|http|https|telnet|ftp|routeros-api
     credentials: Mapped[list] = mapped_column(JSON, default=list)  # [{"username", "secret"}, ...]
     success_keywords: Mapped[list] = mapped_column(JSON, default=list)
     # Feature 008: HTTP/HTTPS form-probe settings (login path, field names,

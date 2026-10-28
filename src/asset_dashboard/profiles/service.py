@@ -5,6 +5,7 @@ Feature 002: the host-management-link capability is removed (FR-004) —
 left dormant, per research.md §5). `selected_scripts` (NSE allow-list ids)
 is the new per-profile field (FR-010).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

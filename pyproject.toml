@@ -59,3 +59,7 @@ ignore = ["B008"]
 [tool.black]
 line-length = 100
 target-version = ["py311"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/asset_dashboard/web/i18n.py" = ["E501"]   # translation strings aren't wrapped
+"tests/**" = ["E501"]                            # long inline fixtures — drop this if you want strict tests

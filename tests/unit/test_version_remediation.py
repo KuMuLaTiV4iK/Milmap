@@ -1,6 +1,7 @@
 """FR-007: on a below-threshold match, `check_version` attaches
 `expected_valid` as the threshold's upgrade target; on no threshold, no
 `expected_valid` key is present — never an invented version."""
+
 from asset_dashboard.compliance.version_check import check_version
 from asset_dashboard.db.base import session_scope
 from asset_dashboard.db.models import ReferenceVersionEntry
@@ -35,9 +36,7 @@ def test_no_threshold_on_file_carries_no_expected_valid_key(client):
 
 def test_compliant_match_still_carries_expected_valid_as_its_own_threshold(client):
     with session_scope() as session:
-        session.add(
-            ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0")
-        )
+        session.add(ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0"))
 
     with session_scope() as session:
         result, detail = check_version(session, "OpenSSH 9.2")

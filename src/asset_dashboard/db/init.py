@@ -26,6 +26,7 @@ Alembic afterward without understanding `_stamp_alembic_head` below.
 needs (feature 008): check `PRAGMA table_info` and `ALTER TABLE … ADD
 COLUMN` for each new nullable/JSON-defaulted column when it is absent.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -68,9 +69,7 @@ def _add_missing_columns() -> None:
                 continue  # table doesn't exist yet — create_all handled it
             for column, column_type in columns.items():
                 if column not in existing:
-                    conn.execute(
-                        text(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
-                    )
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}"))
 
 
 def _stamp_alembic_head() -> None:

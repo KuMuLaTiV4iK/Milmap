@@ -7,6 +7,7 @@ Feature 002 (FR-020): the default-credential check is a standalone tool,
 decoupled from discovery-profile runs, with its own history at
 /tools/credential-check — it has no bearing on this page's posture.
 """
+
 from __future__ import annotations
 
 from collections import Counter

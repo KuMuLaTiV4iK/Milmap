@@ -6,6 +6,7 @@ entirely — a profile with no host link saves, no `{host}` validation runs,
 and a legacy `host_links` payload is simply ignored (never read by
 validate_profile at all, since the field no longer exists on it).
 """
+
 from asset_dashboard.profiles.validation import (
     validate_extracted_fields,
     validate_port_spec,

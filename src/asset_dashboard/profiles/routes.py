@@ -1,4 +1,5 @@
 """Profile routes (FR-001-FR-014, FR-027, FR-042). See contracts/http-api-delta.md."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
@@ -42,9 +43,7 @@ def profiles_list_page(request: Request, session: Session = Depends(get_session)
         request,
         "profiles_list.html",
         {
-            "profiles": [
-                {**_serialize(p), "has_schedule": False} for p in profiles
-            ],
+            "profiles": [{**_serialize(p), "has_schedule": False} for p in profiles],
             **session_context(request, session),
         },
     )

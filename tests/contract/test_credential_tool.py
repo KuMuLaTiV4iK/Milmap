@@ -1,4 +1,5 @@
 """Contract tests for /api/tools/credential-check* (FR-020-FR-025)."""
+
 import time
 
 
@@ -145,9 +146,7 @@ def test_delete_task_with_history_detaches_runs(authed_client):
         )
     with session_scope() as session:
         run_count = (
-            session.query(ToolCheckRun)
-            .filter(ToolCheckRun.tool_task_id == created["id"])
-            .count()
+            session.query(ToolCheckRun).filter(ToolCheckRun.tool_task_id == created["id"]).count()
         )
     assert run_count >= 1
 
@@ -157,9 +156,7 @@ def test_delete_task_with_history_detaches_runs(authed_client):
     # The runs still exist, just detached from the now-deleted task.
     with session_scope() as session:
         assert (
-            session.query(ToolCheckRun)
-            .filter(ToolCheckRun.tool_task_id == created["id"])
-            .count()
+            session.query(ToolCheckRun).filter(ToolCheckRun.tool_task_id == created["id"]).count()
             == 0
         )
 
@@ -268,9 +265,7 @@ def test_interval_task_computes_next_run(authed_client):
 def test_credentials_filter_by_service(authed_client):
     _seed_dict(authed_client, service="http")
     _seed_dict(authed_client, service="ssh")
-    http_only = authed_client.get(
-        "/api/tools/credential-check/credentials?service=http"
-    ).json()
+    http_only = authed_client.get("/api/tools/credential-check/credentials?service=http").json()
     assert http_only
     assert all(d["service"] == "http" for d in http_only)
 
@@ -385,7 +380,12 @@ def test_run_detail_includes_per_attempt_data(authed_client, monkeypatch):
 
     run = authed_client.post(
         "/api/tools/credential-check",
-        json={"target_scope": ["10.0.0.5"], "port": 80, "service": "http", "dictionary_id": dict_id},
+        json={
+            "target_scope": ["10.0.0.5"],
+            "port": 80,
+            "service": "http",
+            "dictionary_id": dict_id,
+        },
     ).json()
     detail = _poll_run(authed_client, run["run_id"])
 

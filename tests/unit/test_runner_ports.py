@@ -1,6 +1,7 @@
 """FR-009b/FR-011: `_persist_assets` stores each port's `state`, computes
 `run.summary["ports_in_results"]` as the distinct `(port, protocol)`
 count, and selects `service_version` from an OPEN port only."""
+
 from asset_dashboard.db.base import session_scope
 from asset_dashboard.db.models import DiscoveryRun
 from asset_dashboard.discovery.parser import ParsedHost, ParsedPort

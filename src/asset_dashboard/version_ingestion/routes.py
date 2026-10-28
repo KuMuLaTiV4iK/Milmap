@@ -1,6 +1,7 @@
 """Version-ingestion routes (FR-014, FR-016-FR-021; contracts/http-api-delta.md
 §B/§C). Admin-only: tracked-source CRUD and bundle import preview/apply —
 the higher trust of cross-boundary data (Constitution Principle VII)."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
@@ -148,9 +149,7 @@ def api_import_preview(
     try:
         review = preview_import(session, json.dumps(body.bundle), keys)
     except BundleInvalidError as exc:
-        return JSONResponse(
-            status_code=400, content=api_error("bundle_invalid", str(exc))
-        )
+        return JSONResponse(status_code=400, content=api_error("bundle_invalid", str(exc)))
     return review
 
 
@@ -172,9 +171,7 @@ def api_import_apply(
             confirm_downgrade=body.confirm_downgrade,
         )
     except BundleInvalidError as exc:
-        return JSONResponse(
-            status_code=400, content=api_error("bundle_invalid", str(exc))
-        )
+        return JSONResponse(status_code=400, content=api_error("bundle_invalid", str(exc)))
 
     record_event(
         session,

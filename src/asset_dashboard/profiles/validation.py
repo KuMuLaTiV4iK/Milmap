@@ -11,6 +11,7 @@ the host-management-link capability is removed from profiles (FR-004) —
 `validate_host_link_templates` is gone and any `host_links` sent by a
 client is ignored, never validated.
 """
+
 from __future__ import annotations
 
 import ipaddress

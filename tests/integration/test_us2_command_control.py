@@ -3,6 +3,7 @@ command (see spec.md US2 Independent Test): toggle each extraction option
 independently (incl. open-ports-only) and change timing; save/run; the
 preview matches selections exactly and -sV appears only when version
 extraction is on."""
+
 import time
 
 from asset_dashboard.discovery import nmap_runner

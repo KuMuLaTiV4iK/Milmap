@@ -18,6 +18,7 @@ an external fetch — constitution Principle I). The probe still performs
 exactly ONE authentication attempt per call; the loop/cooldown stays in
 compliance/credential_check.py.
 """
+
 from __future__ import annotations
 
 import re

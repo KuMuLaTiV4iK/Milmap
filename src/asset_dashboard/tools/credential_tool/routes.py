@@ -1,4 +1,5 @@
 """Standalone credential-tool routes (FR-020-FR-025). See contracts/http-api-delta.md."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
@@ -373,9 +374,7 @@ def api_list_credential_lists(
     if service is not None:
         # Optional filter for the per-service dictionary selector (US2, 3.2).
         query = query.filter(DefaultCredentialEntry.service == service)
-    entries = query.order_by(
-        DefaultCredentialEntry.service, DefaultCredentialEntry.vendor
-    ).all()
+    entries = query.order_by(DefaultCredentialEntry.service, DefaultCredentialEntry.vendor).all()
     return [_serialize_credential_list(e) for e in entries]
 
 

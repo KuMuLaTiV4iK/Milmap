@@ -1,4 +1,5 @@
 """Unit tests for nse/allowlist.py (FR-010-FR-019)."""
+
 import pytest
 
 from asset_dashboard.discovery.nmap_runner import build_nmap_command

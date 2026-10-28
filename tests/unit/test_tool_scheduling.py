@@ -2,6 +2,7 @@
 `tick()` dispatches due ToolTasks, advances next_run_at, honors overlap/
 catch-up, and never exceeds the 3-attempt/>=5s device-safety guard (reused
 unchanged from check_default_credentials)."""
+
 from datetime import timedelta
 
 from asset_dashboard.compliance import credential_check
@@ -71,9 +72,7 @@ def test_once_tool_task_fires_exactly_once_then_disables(client, monkeypatch):
 
     past = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=1)
     with session_scope() as session:
-        session.add(
-            DefaultCredentialEntry(vendor="t", service="ssh", credentials=[])
-        )
+        session.add(DefaultCredentialEntry(vendor="t", service="ssh", credentials=[]))
         task = _make_task(
             session,
             recurrence={"type": "once", "run_at": past.isoformat()},
@@ -125,7 +124,12 @@ def test_credential_check_guard_reused_by_scheduled_dispatch(client, monkeypatch
     import time as _time
 
     from asset_dashboard.db.base import session_scope
-    from asset_dashboard.db.models import DefaultCredentialEntry, RunStatus, ToolCheckResult, ToolCheckRun
+    from asset_dashboard.db.models import (
+        DefaultCredentialEntry,
+        RunStatus,
+        ToolCheckResult,
+        ToolCheckRun,
+    )
 
     monkeypatch.setattr(credential_check.time, "sleep", lambda s: None)
     monkeypatch.setitem(
@@ -137,7 +141,8 @@ def test_credential_check_guard_reused_by_scheduled_dispatch(client, monkeypatch
     with session_scope() as session:
         session.add(
             DefaultCredentialEntry(
-                vendor="Test", service="ssh",
+                vendor="Test",
+                service="ssh",
                 credentials=[{"username": f"u{i}", "secret": f"s{i}"} for i in range(10)],
                 success_keywords=["ok"],
             )

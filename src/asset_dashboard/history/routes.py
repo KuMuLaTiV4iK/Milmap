@@ -1,4 +1,5 @@
 """History routes (FR-022, FR-023). See contracts/http-api.md."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request

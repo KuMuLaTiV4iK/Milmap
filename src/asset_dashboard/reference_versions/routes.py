@@ -1,6 +1,7 @@
 """Reference-versions routes (FR-015, FR-015a, FR-015b). See
 contracts/http-api-delta.md. Session-authenticated, Operators AND
 Administrators (not admin-gated); every mutation is audit-logged."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

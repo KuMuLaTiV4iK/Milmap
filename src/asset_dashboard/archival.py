@@ -8,6 +8,7 @@ deletes anything. When a table's non-archived row count exceeds
 they drop out of the default listing; `include_archived=true` on a
 listing still returns them in full.
 """
+
 from __future__ import annotations
 
 from sqlalchemy import Column

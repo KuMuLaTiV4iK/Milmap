@@ -5,6 +5,7 @@ credentials, etc. (FR-039). Credential-check events should record
 attempt counts and timestamps (to verify the Device-Safety Invariants,
 SC-008), never the attempted secret itself.
 """
+
 from __future__ import annotations
 
 from sqlalchemy.orm import Session

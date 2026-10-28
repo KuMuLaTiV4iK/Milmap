@@ -2,6 +2,7 @@
 V0.7). Operational compliance data, editable by Operators and
 Administrators alike — see plan.md's Constitution Check note on why this
 is not a Principle VII admin-only surface."""
+
 from __future__ import annotations
 
 from sqlalchemy.orm import Session

@@ -4,6 +4,7 @@ persisting a DiscoveryProfile.
 
 As elsewhere, `nmap` is monkeypatched with a fake process.
 """
+
 from asset_dashboard.discovery import nmap_runner
 from tests.contract.test_runs import SAMPLE_XML, _FakeProcess, _poll_until_finished
 

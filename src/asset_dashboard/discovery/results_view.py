@@ -10,6 +10,7 @@ the view with noise. A large-mode host with no open port renders the
 Historical rows persisted before this feature carry no `state` per port
 — those are treated as `open` (backward compatible, no backfill).
 """
+
 from __future__ import annotations
 
 SMALL_SCAN_PORT_THRESHOLD = 10

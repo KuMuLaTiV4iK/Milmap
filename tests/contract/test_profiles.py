@@ -38,9 +38,7 @@ def test_create_profile_defaults_timing_to_t3_when_omitted(authed_client):
 
 
 def test_create_profile_open_ports_only_is_valid(authed_client):
-    open_ports_only = dict(
-        VOIP_PROFILE, name="Open ports only", extracted_fields=["open_ports"]
-    )
+    open_ports_only = dict(VOIP_PROFILE, name="Open ports only", extracted_fields=["open_ports"])
     resp = authed_client.post("/api/profiles", json=open_ports_only)
     assert resp.status_code == 201
     assert resp.json()["extracted_fields"] == ["open_ports"]

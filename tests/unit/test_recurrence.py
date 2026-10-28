@@ -4,6 +4,7 @@ Covers the two new discovery-UI recurrence shapes — one-time (`once`) and
 unit-based interval (`every` × `unit`) — plus the month end-of-month clamp
 and `is_one_shot`. Legacy shapes are exercised in the contract regression
 test (tests/contract/test_schedule.py)."""
+
 from datetime import datetime
 
 import pytest

@@ -1,6 +1,7 @@
 """Threshold CRUD integration tests (FR-009-FR-011): create/edit/delete as
 operator AND admin, each emits a CONFIG_CHANGE audit row, invalid
 min_version is rejected."""
+
 from asset_dashboard.db.base import session_scope
 from asset_dashboard.db.models import AuditEventType, AuditLogEntry
 
@@ -23,9 +24,7 @@ def test_create_threshold_records_config_change_audit_event(authed_client):
     authed_client.post("/api/reference-versions", json=ENTRY)
     with session_scope() as session:
         events = (
-            session.query(AuditLogEntry)
-            .filter_by(event_type=AuditEventType.CONFIG_CHANGE)
-            .all()
+            session.query(AuditLogEntry).filter_by(event_type=AuditEventType.CONFIG_CHANGE).all()
         )
         assert len(events) == 1
         assert events[0].detail["action"] == "create"
@@ -80,9 +79,7 @@ def test_edit_threshold_flips_future_evaluation(authed_client):
 
     with scope() as session:
         events = (
-            session.query(AuditLogEntry)
-            .filter_by(event_type=AuditEventType.CONFIG_CHANGE)
-            .all()
+            session.query(AuditLogEntry).filter_by(event_type=AuditEventType.CONFIG_CHANGE).all()
         )
         assert any(e.detail["action"] == "update" for e in events)
 

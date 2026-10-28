@@ -14,6 +14,7 @@ lifecycle differs from an nmap scan (no subprocess, internal cooldown loop,
 no profile concurrency key), which is why it does not reuse
 discovery/runner.py directly — see plan.md Complexity Tracking.
 """
+
 from __future__ import annotations
 
 import threading

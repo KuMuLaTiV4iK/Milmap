@@ -2,6 +2,7 @@
 `create_all()` install), `version_match`/`status` were left `NOT NULL`
 by migration 0005, which blocked every new manual/ingested threshold
 create (`IntegrityError`). Migration 0006 relaxes them."""
+
 from __future__ import annotations
 
 from pathlib import Path

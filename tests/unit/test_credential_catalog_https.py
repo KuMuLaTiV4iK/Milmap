@@ -6,6 +6,7 @@ probe. This isn't a guardrail bug (the 3-attempt/5s-cooldown guard was
 always honored correctly for the services that HAD candidates) — it was
 a catalog coverage gap. Confirms the seeded catalog now covers `https`
 and that a real check against it makes actual (guarded) attempts."""
+
 from __future__ import annotations
 
 from asset_dashboard.compliance.credential_check import check_default_credentials

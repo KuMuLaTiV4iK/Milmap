@@ -10,6 +10,7 @@ discovery-profile runs entirely — it is now a standalone tool
 no longer has any effect on it, even if a legacy payload still sets
 `default_credentials` (silently ignored here).
 """
+
 from __future__ import annotations
 
 from sqlalchemy.orm import Session

@@ -8,6 +8,7 @@ on-disk database and the real secret key (which, once the app has real
 users, is live production state: deleting or reusing it would invalidate
 real session cookies). Every fixture below swaps BOTH out per test.
 """
+
 from __future__ import annotations
 
 import secrets

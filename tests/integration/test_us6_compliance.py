@@ -13,6 +13,7 @@ payload is still sent.
 `nmap` is mocked (no real network device is available in this
 environment).
 """
+
 import time
 
 from asset_dashboard.db.base import session_scope
@@ -90,7 +91,10 @@ def test_voip_audit_version_validity_without_default_credentials(authed_client, 
     with session_scope() as session:
         session.add(
             ReferenceVersionEntry(
-                vendor="Asterisk", type="ucm", min_version="20.0", note=None,
+                vendor="Asterisk",
+                type="ucm",
+                min_version="20.0",
+                note=None,
             )
         )
 

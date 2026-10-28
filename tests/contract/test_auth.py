@@ -21,9 +21,7 @@ def test_unauthenticated_account_creation_is_gated(client):
 
 
 def test_create_account_rejects_short_password(authed_client):
-    resp = authed_client.post(
-        "/api/accounts", json={"username": "alice", "password": "tooshort"}
-    )
+    resp = authed_client.post("/api/accounts", json={"username": "alice", "password": "tooshort"})
     assert resp.status_code == 422
     assert "password" in resp.json()["error"]["fields"]
 

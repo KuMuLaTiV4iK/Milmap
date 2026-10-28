@@ -1,5 +1,6 @@
 """FR-002: password policy enforces a minimum length of 20 characters,
 at both account creation and password change."""
+
 from asset_dashboard.auth.passwords import hash_password, validate_password_policy, verify_password
 
 

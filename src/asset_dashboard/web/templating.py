@@ -1,7 +1,8 @@
 """Shared Jinja2 environment for server-rendered pages."""
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
@@ -36,7 +37,7 @@ def local_ts(value) -> str:
     if not isinstance(parsed, datetime):
         return str(value)
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
+        parsed = parsed.replace(tzinfo=UTC)
     # astimezone() with no argument converts to the host's local time zone.
     return parsed.astimezone().strftime(TIMESTAMP_FORMAT)
 
@@ -68,8 +69,7 @@ def humanize_recurrence(recurrence: dict) -> str:
 
     if kind == "weekly":
         return (
-            f"Щотижня о {int(recurrence.get('hour', 0)):02d}:"
-            f"{int(recurrence.get('minute', 0)):02d}"
+            f"Щотижня о {int(recurrence.get('hour', 0)):02d}:{int(recurrence.get('minute', 0)):02d}"
         )
 
     return str(recurrence)

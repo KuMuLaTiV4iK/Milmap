@@ -4,6 +4,7 @@ All three are registered probes and allowed services. With an empty
 credential catalog no probe actually runs, so a run completes without
 network I/O.
 """
+
 from __future__ import annotations
 
 from asset_dashboard.compliance.credential_check import _PROBES, check_default_credentials

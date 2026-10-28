@@ -7,6 +7,7 @@ default on read, so a fresh install needs no explicit seeding step.
 enforced here in the update path (not merely the UI), per the
 constitution's non-lowerable password-policy requirement.
 """
+
 from __future__ import annotations
 
 from sqlalchemy.orm import Session

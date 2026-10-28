@@ -5,6 +5,7 @@ is monkeypatched with a fake process to exercise the orchestrator's own
 logic (status transitions, concurrency, cancellation) deterministically,
 without depending on an actual nmap binary.
 """
+
 import time
 
 from asset_dashboard.discovery import nmap_runner

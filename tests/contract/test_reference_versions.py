@@ -2,6 +2,7 @@
 threshold CRUD allowed for both Operator and Administrator (not
 admin-gated), validation of `min_version`/required fields, and a
 `CONFIG_CHANGE` audit event on each mutation."""
+
 from asset_dashboard.db.base import session_scope
 from asset_dashboard.db.models import AuditEventType, AuditLogEntry
 
@@ -28,9 +29,7 @@ def test_create_entry_records_config_change_audit_event(authed_client):
     authed_client.post("/api/reference-versions", json=ENTRY)
     with session_scope() as session:
         events = (
-            session.query(AuditLogEntry)
-            .filter_by(event_type=AuditEventType.CONFIG_CHANGE)
-            .all()
+            session.query(AuditLogEntry).filter_by(event_type=AuditEventType.CONFIG_CHANGE).all()
         )
         assert len(events) == 1
         assert events[0].detail["action"] == "create"
@@ -70,9 +69,7 @@ def test_update_entry(authed_client):
 
     with session_scope() as session:
         events = (
-            session.query(AuditLogEntry)
-            .filter_by(event_type=AuditEventType.CONFIG_CHANGE)
-            .all()
+            session.query(AuditLogEntry).filter_by(event_type=AuditEventType.CONFIG_CHANGE).all()
         )
         assert any(e.detail["action"] == "update" for e in events)
 

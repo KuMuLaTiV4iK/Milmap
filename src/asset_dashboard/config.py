@@ -3,6 +3,7 @@
 All configuration is local — no external config service, consistent with the
 air-gapped deployment target (constitution Principle I).
 """
+
 from __future__ import annotations
 
 from pathlib import Path

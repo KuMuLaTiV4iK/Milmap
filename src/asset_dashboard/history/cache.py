@@ -6,6 +6,7 @@ The cached response is clearly labelled (`served_from_cache`) and carries
 the ORIGINAL run's timestamp, never a new one. `force_fresh` bypasses this
 entirely (handled by the caller, which simply skips calling this module).
 """
+
 from __future__ import annotations
 
 from sqlalchemy.orm import Session

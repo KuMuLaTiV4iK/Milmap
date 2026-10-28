@@ -3,6 +3,7 @@
 The "Розклад" column is removed from the Profiles table; the remaining
 columns (name, target, ports) stay.
 """
+
 from __future__ import annotations
 
 from asset_dashboard.web.i18n import t

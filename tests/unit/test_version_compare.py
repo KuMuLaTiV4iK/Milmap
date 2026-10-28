@@ -1,5 +1,6 @@
 """Unit tests for the deterministic SemVer-style comparator (FR-006,
 research D1): `compliance/version_compare.py`."""
+
 from asset_dashboard.compliance.version_compare import (
     compare_versions,
     normalize_wildcard_floor,

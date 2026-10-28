@@ -8,6 +8,7 @@ scheduler. APScheduler is used only as the periodic heartbeat that calls
 `tick()` — see `start_scheduler`/`shutdown_scheduler`, wired into the
 app's lifespan.
 """
+
 from __future__ import annotations
 
 import calendar
@@ -152,9 +153,7 @@ def validate_recurrence(recurrence: dict, *, now: datetime) -> None:
             if not isinstance(every, int) or isinstance(every, bool) or every < 1:
                 raise RecurrenceValidationError("every must be a positive whole number")
             if recurrence.get("unit") not in _INTERVAL_UNITS:
-                raise RecurrenceValidationError(
-                    "unit must be one of " + ", ".join(_INTERVAL_UNITS)
-                )
+                raise RecurrenceValidationError("unit must be one of " + ", ".join(_INTERVAL_UNITS))
             return
         seconds = recurrence.get("seconds")
         if not isinstance(seconds, int) or isinstance(seconds, bool) or seconds < 1:

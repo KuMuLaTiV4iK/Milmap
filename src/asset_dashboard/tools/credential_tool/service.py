@@ -8,6 +8,7 @@ outcome. Every path reuses the central guard in
 `compliance/credential_check.py` (>=5s cooldown NON-NEGOTIABLE; attempt
 ceiling configurable, default = dictionary size — constitution v2.0.0).
 """
+
 from __future__ import annotations
 
 from sqlalchemy.orm import Session

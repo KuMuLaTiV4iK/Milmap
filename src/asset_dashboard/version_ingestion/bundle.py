@@ -12,6 +12,7 @@ signed bundle is still rejected. Re-tighten this to required once bundle
 signing is wired up end-to-end (FR-016a's "MUST be verified" reverts to
 being enforced unconditionally).
 """
+
 from __future__ import annotations
 
 import hashlib

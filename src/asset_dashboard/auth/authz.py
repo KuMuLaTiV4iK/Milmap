@@ -7,6 +7,7 @@ baseline authenticated-account dependency (an Administrator also
 satisfies it — the roles are not mutually exclusive in capability, only
 Administrator is a superset).
 """
+
 from __future__ import annotations
 
 from fastapi import Depends, HTTPException, Request

@@ -1,4 +1,5 @@
 """Discovery run routes (FR-016-FR-021, FR-024, FR-025, FR-043). See contracts/http-api.md."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request

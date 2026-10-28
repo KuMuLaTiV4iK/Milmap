@@ -2,6 +2,7 @@
 (<=10 distinct ports in the run) lists every port with its state, large
 (>10) shows open-only, large-with-no-open-port signals `all_closed`, and
 a missing `state` (historical rows) is treated as `open`."""
+
 from asset_dashboard.discovery.results_view import port_row_view
 
 OPEN_AND_FILTERED = [

@@ -1,4 +1,5 @@
 """NSE allow-list routes (FR-010-FR-018). See contracts/http-api-delta.md."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
@@ -103,9 +104,7 @@ def api_import_nse_scripts(
     try:
         result = import_from_nmap_scripts(session, created_by=account.id)
     except NmapScriptsNotFoundError as exc:
-        return JSONResponse(
-            status_code=400, content=api_error("nmap_scripts_not_found", str(exc))
-        )
+        return JSONResponse(status_code=400, content=api_error("nmap_scripts_not_found", str(exc)))
 
     record_event(
         session,

@@ -3,6 +3,7 @@
 The button is a link to /schedules?from_run=<run_id>; the schedules page then
 pre-fills the create form with that run's profile and scanned target (leaving
 the recurrence for the operator). Replaces the earlier seconds-prompt popup."""
+
 import time
 
 from asset_dashboard.discovery import nmap_runner
@@ -65,7 +66,7 @@ def test_history_and_run_pages_link_to_schedule_prefill(authed_client, monkeypat
 
     link = f"/schedules?from_run={run_id}"
     assert link in authed_client.get("/history").text
-    assert link in authed_client.get("/").text          # Home / dashboard recent scans
+    assert link in authed_client.get("/").text  # Home / dashboard recent scans
     assert link in authed_client.get(f"/runs/{run_id}").text
 
     # The old seconds-prompt handler is gone.

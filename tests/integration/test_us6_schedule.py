@@ -2,6 +2,7 @@
 with their own target, multiple schedules per profile, firing via
 tick(), and creating a schedule from a past scan in history
 (FR-020-FR-023)."""
+
 import time
 
 from asset_dashboard.db.base import session_scope

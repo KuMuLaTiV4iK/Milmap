@@ -3,6 +3,7 @@ path (create + update), failed-entry skip (no write), downgrade/
 verdict-changing requires confirmation else needs_review=true, one
 CONFIG_CHANGE import audit with provenance and no secret, admin-only
 (operator -> 403)."""
+
 from __future__ import annotations
 
 import hashlib
@@ -54,7 +55,16 @@ def _provision_key(tmp_path, monkeypatch):
 
 def test_apply_accepts_an_unsigned_bundle(admin_client):
     bundle = make_unsigned_bundle(
-        [{"model": "portable", "type": "router", "version": "9.9", "source": "x", "fetched_at": "x", "status": "ok"}]
+        [
+            {
+                "model": "portable",
+                "type": "router",
+                "version": "9.9",
+                "source": "x",
+                "fetched_at": "x",
+                "status": "ok",
+            }
+        ]
     )
     resp = admin_client.post("/api/version-ingestion/import/apply", json={"bundle": bundle})
     assert resp.status_code == 200, resp.text
@@ -74,7 +84,9 @@ def test_apply_accepts_free_form_types_without_rejecting_the_bundle(admin_client
     )
     resp = admin_client.post("/api/version-ingestion/import/apply", json={"bundle": bundle})
     assert resp.status_code == 200, resp.text
-    assert resp.json()["created"] == 2  # two independently versioned tracks, not one clobbering the other
+    assert (
+        resp.json()["created"] == 2
+    )  # two independently versioned tracks, not one clobbering the other
 
     with session_scope() as session:
         entries = (
@@ -88,12 +100,19 @@ def test_apply_accepts_free_form_types_without_rejecting_the_bundle(admin_client
 
 def test_preview_shows_diff_without_writing(admin_client):
     with session_scope() as session:
-        session.add(
-            ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0")
-        )
+        session.add(ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.0"))
 
     bundle = make_bundle(
-        [{"model": "portable", "type": "router", "version": "9.9", "source": "x", "fetched_at": "x", "status": "ok"}]
+        [
+            {
+                "model": "portable",
+                "type": "router",
+                "version": "9.9",
+                "source": "x",
+                "fetched_at": "x",
+                "status": "ok",
+            }
+        ]
     )
     resp = admin_client.post("/api/version-ingestion/import/preview", json={"bundle": bundle})
     assert resp.status_code == 200, resp.text
@@ -108,7 +127,16 @@ def test_preview_shows_diff_without_writing(admin_client):
 
 def test_apply_creates_and_updates_entries(admin_client):
     bundle = make_bundle(
-        [{"model": "portable", "type": "router", "version": "9.9", "source": "x", "fetched_at": "x", "status": "ok"}]
+        [
+            {
+                "model": "portable",
+                "type": "router",
+                "version": "9.9",
+                "source": "x",
+                "fetched_at": "x",
+                "status": "ok",
+            }
+        ]
     )
     resp = admin_client.post("/api/version-ingestion/import/apply", json={"bundle": bundle})
     assert resp.status_code == 200, resp.text
@@ -138,12 +166,19 @@ def test_failed_entry_is_skipped_never_written(admin_client):
 
 def test_downgrade_requires_confirmation_else_needs_review(admin_client):
     with session_scope() as session:
-        session.add(
-            ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.5")
-        )
+        session.add(ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.5"))
 
     bundle = make_bundle(
-        [{"model": None, "type": "router", "version": "9.0", "source": "x", "fetched_at": "x", "status": "ok"}]
+        [
+            {
+                "model": None,
+                "type": "router",
+                "version": "9.0",
+                "source": "x",
+                "fetched_at": "x",
+                "status": "ok",
+            }
+        ]
     )
 
     resp = admin_client.post("/api/version-ingestion/import/apply", json={"bundle": bundle})
@@ -159,12 +194,19 @@ def test_downgrade_requires_confirmation_else_needs_review(admin_client):
 
 def test_downgrade_with_confirmation_applies_cleanly(admin_client):
     with session_scope() as session:
-        session.add(
-            ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.5")
-        )
+        session.add(ReferenceVersionEntry(vendor="OpenSSH", type="router", min_version="9.5"))
 
     bundle = make_bundle(
-        [{"model": None, "type": "router", "version": "9.0", "source": "x", "fetched_at": "x", "status": "ok"}]
+        [
+            {
+                "model": None,
+                "type": "router",
+                "version": "9.0",
+                "source": "x",
+                "fetched_at": "x",
+                "status": "ok",
+            }
+        ]
     )
 
     resp = admin_client.post(
@@ -182,15 +224,22 @@ def test_downgrade_with_confirmation_applies_cleanly(admin_client):
 
 def test_apply_records_one_config_change_audit_with_no_secret(admin_client):
     bundle = make_bundle(
-        [{"model": "portable", "type": "router", "version": "9.9", "source": "x", "fetched_at": "x", "status": "ok"}]
+        [
+            {
+                "model": "portable",
+                "type": "router",
+                "version": "9.9",
+                "source": "x",
+                "fetched_at": "x",
+                "status": "ok",
+            }
+        ]
     )
     admin_client.post("/api/version-ingestion/import/apply", json={"bundle": bundle})
 
     with session_scope() as session:
         events = (
-            session.query(AuditLogEntry)
-            .filter_by(event_type=AuditEventType.CONFIG_CHANGE)
-            .all()
+            session.query(AuditLogEntry).filter_by(event_type=AuditEventType.CONFIG_CHANGE).all()
         )
         assert len(events) == 1
         detail = events[0].detail
@@ -201,7 +250,16 @@ def test_apply_records_one_config_change_audit_with_no_secret(admin_client):
 
 def test_tampered_bundle_is_rejected_no_write(admin_client):
     bundle = make_bundle(
-        [{"model": "portable", "type": "router", "version": "9.9", "source": "x", "fetched_at": "x", "status": "ok"}]
+        [
+            {
+                "model": "portable",
+                "type": "router",
+                "version": "9.9",
+                "source": "x",
+                "fetched_at": "x",
+                "status": "ok",
+            }
+        ]
     )
     bundle["payload"]["entries"][0]["version"] = "99.99"  # tamper
 
@@ -215,15 +273,28 @@ def test_tampered_bundle_is_rejected_no_write(admin_client):
 
 def test_operator_gets_403_on_ingestion_endpoints(authed_client):
     bundle = make_bundle(
-        [{"model": "portable", "type": "router", "version": "9.9", "source": "x", "fetched_at": "x", "status": "ok"}]
+        [
+            {
+                "model": "portable",
+                "type": "router",
+                "version": "9.9",
+                "source": "x",
+                "fetched_at": "x",
+                "status": "ok",
+            }
+        ]
     )
     assert authed_client.get("/api/version-ingestion/sources").status_code == 403
     assert (
-        authed_client.post("/api/version-ingestion/import/preview", json={"bundle": bundle}).status_code
+        authed_client.post(
+            "/api/version-ingestion/import/preview", json={"bundle": bundle}
+        ).status_code
         == 403
     )
     assert (
-        authed_client.post("/api/version-ingestion/import/apply", json={"bundle": bundle}).status_code
+        authed_client.post(
+            "/api/version-ingestion/import/apply", json={"bundle": bundle}
+        ).status_code
         == 403
     )
 
@@ -231,7 +302,11 @@ def test_operator_gets_403_on_ingestion_endpoints(authed_client):
 def test_source_crud_round_trip(admin_client):
     created = admin_client.post(
         "/api/version-ingestion/sources",
-        json={"vendor": "OpenSSH", "source_url": "https://www.openssh.com/", "models": ["portable"]},
+        json={
+            "vendor": "OpenSSH",
+            "source_url": "https://www.openssh.com/",
+            "models": ["portable"],
+        },
     )
     assert created.status_code == 201, created.text
     source_id = created.json()["id"]

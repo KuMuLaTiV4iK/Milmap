@@ -6,6 +6,7 @@ level registry tracks which profiles are currently running (FR-043: no
 duplicate concurrent run of the same profile) and the global concurrent-
 run count (FR-021).
 """
+
 from __future__ import annotations
 
 import threading

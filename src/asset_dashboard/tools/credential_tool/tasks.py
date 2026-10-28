@@ -3,6 +3,7 @@
 Called from scheduling/engine.tick() — produces a ToolCheckRun equivalent
 in shape/outcome to an on-demand run (same service.run_credential_check).
 """
+
 from __future__ import annotations
 
 from sqlalchemy.orm import Session

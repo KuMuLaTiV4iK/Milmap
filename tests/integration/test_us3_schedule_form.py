@@ -3,6 +3,7 @@
 GET /schedules renders a kind dropdown with Одноразово above Інтервал, a unit
 dropdown of the five Ukrainian units, and a humanized (not raw-dict) recurrence
 in the list."""
+
 from datetime import timedelta
 
 from asset_dashboard.db.base import session_scope

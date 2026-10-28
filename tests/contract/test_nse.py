@@ -82,14 +82,14 @@ def test_bulk_import_creates_entries_from_local_nmap_catalog(admin_client, tmp_p
 
     with session_scope() as session:
         events = (
-            session.query(AuditLogEntry)
-            .filter_by(event_type=AuditEventType.ALLOWLIST_CHANGE)
-            .all()
+            session.query(AuditLogEntry).filter_by(event_type=AuditEventType.ALLOWLIST_CHANGE).all()
         )
         assert any(e.detail.get("action") == "bulk_import" for e in events)
 
 
-def test_bulk_import_returns_400_when_nmap_scripts_dir_not_found(admin_client, tmp_path, monkeypatch):
+def test_bulk_import_returns_400_when_nmap_scripts_dir_not_found(
+    admin_client, tmp_path, monkeypatch
+):
     from asset_dashboard.config import settings as app_settings
     from asset_dashboard.nse import allowlist as allowlist_module
 

@@ -5,6 +5,7 @@ fetcher-cli.md): per-model ok/failed, no fabricated version on failure.
 the air-gapped runtime package) — this test adds it to `sys.path` itself,
 exactly as a developer running the CLI from `tools/` would.
 """
+
 import sys
 from pathlib import Path
 
@@ -61,9 +62,7 @@ def test_fetch_vendor_ok_and_failed_models(monkeypatch):
 
 def test_fetch_vendor_model_with_empty_type_fails_without_fabricating():
     extractor = {"portable": {"regex": r'id="version">([\d.]+)<', "type": "  "}}
-    bundle_payload = fetch_vendor(
-        "OpenSSH", "https://example.invalid/", ["portable"], extractor
-    )
+    bundle_payload = fetch_vendor("OpenSSH", "https://example.invalid/", ["portable"], extractor)
     entry = bundle_payload["entries"][0]
     assert entry["status"] == "failed"
     assert entry["version"] is None

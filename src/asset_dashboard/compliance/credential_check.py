@@ -20,6 +20,7 @@ probe call and are never written to the resulting finding or the audit
 log (FR-039/FR-114) — only usernames, attempt counts, a protocol label,
 a status code and a body-only excerpt are recorded.
 """
+
 from __future__ import annotations
 
 import time

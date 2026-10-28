@@ -1,4 +1,5 @@
 """Auth + account routes (FR-001-FR-006). See contracts/http-api.md."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -167,9 +168,7 @@ def change_password(
 ):
     account = session.get(OperatorAccount, account_id)
     if account is None:
-        return JSONResponse(
-            status_code=404, content=api_error("not_found", "Account not found.")
-        )
+        return JSONResponse(status_code=404, content=api_error("not_found", "Account not found."))
 
     if not verify_password(account.password_hash, body.current):
         return JSONResponse(

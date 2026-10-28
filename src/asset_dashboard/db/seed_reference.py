@@ -6,6 +6,7 @@ Usage:
 Re-running replaces existing rows (idempotent re-seed from the JSON files
 under data/reference/, which are the locally-maintained source of truth).
 """
+
 from __future__ import annotations
 
 import json
