@@ -271,7 +271,12 @@ account you just created.
 To run it again later, just reactivate the virtual environment and repeat step 7:
 
 ```powershell
+#for Windows
 .\.venv\Scripts\Activate.ps1
+python -m asset_dashboard.main
+
+#for Linux
+source .venv/bin/activate
 python -m asset_dashboard.main
 ```
 
